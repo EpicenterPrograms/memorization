@@ -1,0 +1,452 @@
+<!doctype html>
+<html>
+	<head>
+		<title>
+			Memorization
+		</title>
+		<base target="_blank">
+		<script src="https://www.gstatic.com/firebasejs/4.6.1/firebase.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/4.6.1/firebase-firestore.js"></script>
+		<script src="https://epicenterprograms.github.io/standards/behavior/firebaseinit.js"></script>
+		<script src="https://epicenterprograms.github.io/standards/behavior/general.js"></script>
+		<!--
+		<script src="file:///C:/Users/Robert/Documents/GitHub/standards/behavior/general.js"></script>
+		-->
+		<script>
+			var S = Standards.general;
+			S.storage.local.defaultLocation = "memorization";
+			S.storage.session.defaultLocation = "memorization";
+			S.storage.server.defaultLocation = "memorization";
+			var M = S.storage.location;
+			//// M = S.storage.session;
+			var unusedFlashcards = [];
+			var usedFlashcards = [];
+			var studyingPaths = [];
+
+			function goToSubject() {
+				S.getId("mainMenu").style.display = "none";
+				S.getId("studySection").style.display = "none";
+				S.getId("toSubjectMenu").style.display = "none";
+				S.getId("subjectTable").innerHTML = "";
+				unusedFlashcards = [];
+				usedFlashcards = [];
+				studyingPaths = [];
+				if (S.getId("subjectSelector").value) {
+					S.getId("subjectTitle").value = S.getId("subjectSelector").value;
+				}
+				S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value;
+				if (S.getId("subjectTitle").value == "Title") {
+					let row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(2, function (category, index) {
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "hint";
+						rb.value = index;
+						let data = document.createElement("td");
+						data.style.border = "none";
+						data.style.background = "none";
+						data.appendChild(rb);
+						row.appendChild(data);
+					});
+					row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(2, function (category, index) {
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "answer";
+						rb.value = index;
+						let data = document.createElement("td");
+						data.style.border = "none";
+						data.style.background = "none";
+						data.appendChild(rb);
+						row.appendChild(data);
+					});
+					row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(2, function () {
+						row.appendChild(document.createElement("th"));
+					});
+					row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(2, function () {
+						row.appendChild(document.createElement("td"));
+					});
+				} else {
+					let row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(M.list(S.getId("subjectTitle").value), function (category, index) {
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "hint";
+						rb.value = index;
+						let data = document.createElement("td");
+						data.style.border = "none";
+						data.style.background = "none";
+						data.appendChild(rb);
+						row.appendChild(data);
+					});
+					row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(M.list(S.getId("subjectTitle").value), function (category, index) {
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "answer";
+						rb.value = index;
+						let data = document.createElement("td");
+						data.style.border = "none";
+						data.style.background = "none";
+						data.appendChild(rb);
+						row.appendChild(data);
+					});
+					row = S.getId("subjectTable").insertRow(-1);
+					S.forEach(M.list(S.getId("subjectTitle").value), function (category) {
+						let heading = document.createElement("th");
+						heading.textContent = category;
+						row.appendChild(heading);
+					});
+					S.forEach(M.recall(S.getId("subjectTitle").value + "/" + M.list(S.getId("subjectTitle").value)[0]).length, function (reverseIndex, index) {
+						row = S.getId("subjectTable").insertRow(-1);
+						S.forEach(M.list(S.getId("subjectTitle").value), function (category) {
+							let item = document.createElement("td");
+							let answer = M.recall(S.getId("subjectTitle").value + "/" + category)[index];
+							if (S.getType(answer) == "String" && (answer.includes("http") || answer.includes("file://"))) {
+								let img = document.createElement("img");
+								img.src = answer;
+								img.style.maxWidth = "9rem";
+								img.style.maxheight = "9rem";
+								item.appendChild(img);
+							} else {
+								item.textContent = answer;
+							}
+							row.appendChild(item);
+						});
+					});
+				}
+				S.getId("subjectMenu").style.display = "block";
+				S.getId("navigationButtons").style.display = "block";
+			}
+
+			S.listen("subjectSelector", "change", goToSubject);
+
+
+
+			S.listen("subjectTitle", "change", function () {
+				if (S.getId("subjectTitle").value.trim()) {
+					S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value.trim();
+				} else {
+					S.getClass("main-title")[0].textContent = "Title";
+				}
+			});
+
+			S.listen("deleteSubject", "click", function () {
+				S.makeDialog("Are you sure you want to delete this subject?", ["Yes", function () {
+					setTimeout(function () {
+						let shouldDelete = true;
+						S.makeDialog('<span id="deletingMessage">Deleting subject...</span>', ['<span id="deletingButton">Cancel</span>', function () {
+							shouldDelete = false;
+						}]);
+						setTimeout(function () {
+							if (shouldDelete) {
+								S.forEach(M.list(S.getId("subjectTitle").value.trim()), function (key) {
+									M.forget(key, S.getId("subjectTitle").value.trim());
+								});
+								goToMain();
+								S.getId("deletingMessage").textContent = "Subject deleted.";
+								S.getId("deletingButton").textContent = "Okay";
+							}
+						}, 3000);
+					}, 0);
+				}], "No");
+			});
+
+			S.listen("newRow", "click", function () {
+				let row = S.getId("subjectTable").insertRow(-1);
+				S.forEach(S.getId("subjectTable").getElementsByTagName("tr")[0].children.length, function () {
+					row.appendChild(document.createElement("td"));
+				});
+			});
+
+			S.listen("newColumn", "click", function () {
+				S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+					let segment;
+					if (index == 0) {
+						segment = document.createElement("td");
+						segment.style.border = "none";
+						segment.style.background = "none";
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "hint";
+						rb.value = S.getId("subjectTable").getElementsByTagName("tr")[0].children.length;
+						segment.appendChild(rb);
+					} else if (index == 1) {
+						segment = document.createElement("td");
+						segment.style.border = "none";
+						segment.style.background = "none";
+						let rb = document.createElement("input");  // radio button
+						rb.type = "radio";
+						rb.name = "answer";
+						rb.value = S.getId("subjectTable").getElementsByTagName("tr")[0].children.length;
+						segment.appendChild(rb);
+					} else if (index == 2) {
+						segment = document.createElement("th");
+					} else {
+						segment = document.createElement("td");
+					}
+					row.appendChild(segment);
+				});
+			});
+
+			S.listen("deleteRow", "click", function () {
+				if (S.getId("rowNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr").length > 4) {
+					S.removeSelf(S.getId("subjectTable").getElementsByTagName("tr")[Number(S.getId("rowNumber").value)+2]);
+					S.getId("rowNumber").value = "";
+				}
+			});
+
+			S.listen("deleteColumn", "click", function () {
+				if (S.getId("columnNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 2) {
+					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
+						row.removeChild(row.children[S.getId("columnNumber").value-1]);
+					});
+					S.forEach(S.getName("hint"), function (radioButton, index) {
+						radioButton.value = index;
+					});
+					S.forEach(S.getName("answer"), function (radioButton, index) {
+						radioButton.value = index;
+					});
+					S.getId("columnNumber").value = "";
+				}
+			});
+
+			S.listen("save", "click", function () {
+				if (S.getId("subjectTitle").value.trim() != "Title") {
+					let categories = [];
+					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+						if (index > 1) {  // skips the radio buttons
+							if (index == 2) {  // for the headings
+								S.forEach(row.children, function (category) {
+									categories.push(category.textContent);
+									M.store(S.getId("subjectTitle").value.trim() + "/" + category.textContent, []);
+								});
+							} else {
+								S.forEach(categories, function (category, subindex) {
+									let list = M.recall(S.getId("subjectTitle").value.trim() + "/" + category);
+									if (row.children[subindex].innerHTML.includes("<img")) {  // if the item is a picture
+										list.push(row.children[subindex].getElementsByTagName("img")[0].src);
+									} else {
+										list.push(row.children[subindex].textContent);
+									}
+									M.store(S.getId("subjectTitle").value.trim() + "/" + category, list);
+								});
+							}
+						}
+					});
+					// resets in case there were pictures added
+					S.getId("subjectTable").innerHTML = "";
+					goToSubject();
+				} else {
+					alert("You can't save a subject with that title.");
+				}
+			});
+
+			S.listen("start", "click", function () {
+				if (S.getName("hint", true) && S.getName("answer", true) && S.getName("hint", true).value != S.getName("answer", true).value) {
+					let subject = S.getId("subjectTitle").value.trim();
+					hints = M.recall(subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent);
+					answers = M.recall(subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent);
+					S.forEach(hints, function (hint, index) {
+						if (hint !== "" && answers[index] !== "") {
+							unusedFlashcards.push([hint, answers[index]]);
+						}
+					});
+					if (unusedFlashcards.length > 0) {  // if there was at least one hint-answer pair
+						S.getId("subjectMenu").style.display = "none";
+						studyingPaths = [
+							subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent,  // path to hints
+							subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent  // path to answers
+						];
+						makeFlashcard();
+						S.getId("studySection").style.display = "block";
+						S.getId("toSubjectMenu").style.display = "inline-block";
+					}
+				}
+			});
+
+
+
+			function makeFlashcard() {
+				if (unusedFlashcards.length > 0) {
+					S.getId("hint").innerHTML = "";
+					S.getId("answer").innerHTML = "";
+					S.getId("answer").style.visibility = "hidden";
+					let randomIndex = Math.round(Math.random() * (unusedFlashcards.length - 1));
+					let hint = unusedFlashcards[randomIndex][0];
+					let answer = unusedFlashcards[randomIndex][1];
+					if (S.getType(hint) == "String" && (hint.includes("http") || hint.includes("file://"))) {
+						let img = document.createElement("img");
+						img.src = hint;
+						img.style.maxWidth = "20rem";
+						img.style.maxheight = "20rem";
+						S.getId("hint").appendChild(img);
+					} else {
+						S.getId("hint").textContent = hint;
+					}
+					if (S.getType(answer) == "String" && (answer.includes("http") || answer.includes("file://"))) {
+						let img = document.createElement("img");
+						img.src = answer;
+						img.style.maxWidth = "20rem";
+						img.style.maxheight = "20rem";
+						S.getId("answer").appendChild(img);
+					} else {
+						S.getId("answer").textContent = answer;
+					}
+					usedFlashcards.push(unusedFlashcards[randomIndex]);
+					unusedFlashcards.splice(randomIndex, 1);
+				} else {
+					unusedFlashcards = usedFlashcards;
+					usedFlashcards = [];
+					makeFlashcard();
+				}
+			}
+
+
+
+			function goToMain() {
+				S.getClass("main-title")[0].textContent = "Menu";
+				S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
+				let includedSubjects = [];
+				S.forEach(M.list(), function (key) {
+					if (!includedSubjects.includes(key.split("/")[0])) {
+						let option = document.createElement("option");
+						option.textContent = key.split("/")[0];
+						option.value = key.split("/")[0];
+						S.getId("subjectSelector").appendChild(option);
+						includedSubjects.push(key.split("/")[0]);
+					}
+				});
+				S.forEach(["subjectMenu", "studySection", "navigationButtons"], function (ID) {
+					S.getId(ID).style.display = "none";
+				});
+				S.getId("subjectTitle").value = "Title";
+				S.getId("subjectTable").innerHTML = "";
+				S.getId("mainMenu").style.display = "block";
+			}
+
+			window.addEventListener("finished", goToMain);
+		</script>
+		<link rel="stylesheet" href="https://epicenterprograms.github.io/standards/formatting/foundation.css">
+		<!--
+		<link rel="stylesheet" href="file:///C:/Users/Robert/Documents/GitHub/standards/formatting/foundation.css">
+		-->
+		<style>
+			th, td {
+				max-width: 10rem;
+			}
+			#subjectMenu {
+				display: none;
+			}
+			#rowNumber {
+				width: 2rem;
+			}
+			#columnNumber {
+				width: 2rem;
+			}
+			#studySection {
+				display: none;
+			}
+			#hint {
+				display: block;
+				font-size: 2rem;
+				font-weight: bold;
+			}
+			#answer {
+				visibility: hidden;
+				max-width: 20rem;
+				max-height: 20rem;
+				font-size: 2rem;
+			}
+			#navigationButtons {
+				display: none;
+			}
+			#toSubjectMenu {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<h1 class="main-title">
+			Menu
+		</h1>
+		<div class="user-section">
+			<button id="signIn">
+				Log in
+			</button>
+			<button id="signUp">
+				Register
+			</button>
+			<button id="userSettings">
+				Settings
+			</button>
+			<button id="signOut">
+				Log out
+			</button>
+		</div>
+		<main>
+			<div id="mainMenu">
+				<p>
+					Select the subject you wish to study or make a new one.
+				</p>
+				<select id="subjectSelector"></select>
+				<br>
+				<button onclick="goToSubject()">
+					Create
+				</button>
+			</div>
+			<div id="subjectMenu">
+				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
+				<button id="deleteSubject">
+					Delete subject
+				</button>
+				<br>
+				<table id="subjectTable" contenteditable></table>
+				<br>
+				<button id="newRow">
+					New row
+				</button>
+				<button id="newColumn">
+					New column
+				</button>
+				<br>
+				<button id="deleteRow">
+					Delete row...
+				</button>
+				<input type="text" id="rowNumber" placeholder="#">
+				<button id="deleteColumn">
+					Delete column...
+				</button>
+				<input type="text" id="columnNumber" placeholder="#">
+				<br>
+				<button id="save">
+					Save
+				</button>
+				<button id="start">
+					Start studying
+				</button>
+			</div>
+			<div id="studySection">
+				<div id="hint"></div>
+				<div id="answer"></div>
+				<br>
+				<button onclick='S.getId("answer").style.visibility = "visible";'>
+					Show answer
+				</button>
+				<button onclick="makeFlashcard()">
+					Next
+				</button>
+			</div>
+			<div id="navigationButtons">
+				<button onclick="goToMain()">
+					Main menu
+				</button>
+				<button id="toSubjectMenu" onclick="goToSubject()">
+					Subject menu
+				</button>
+			</div>
+		</main>
+	</body>
+</html>
