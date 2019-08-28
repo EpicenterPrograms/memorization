@@ -16,7 +16,7 @@
 			var S = Standards.general;
 			S.storage.local.defaultLocation = "memorization";
 			S.storage.session.defaultLocation = "memorization";
-			S.storage.server.defaultLocation = "memorization";
+			S.storage.server.defaultLocation = "/memorization";
 			var M = S.storage.location;
 			//// M = S.storage.session;
 			var unusedFlashcards = [];
@@ -70,7 +70,7 @@
 					});
 				} else {
 					let row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value), function (category, index) {
+					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "hint";
@@ -82,7 +82,7 @@
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value), function (category, index) {
+					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
@@ -94,14 +94,14 @@
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value), function (category) {
+					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category) {
 						let heading = document.createElement("th");
 						heading.textContent = category;
 						row.appendChild(heading);
 					});
-					S.forEach(M.recall(S.getId("subjectTitle").value + "/" + M.list(S.getId("subjectTitle").value)[0]).length, function (reverseIndex, index) {
+					S.forEach(M.recall(M.list(S.getId("subjectTitle").value)[0]).length, function (reverseIndex, index) {
 						row = S.getId("subjectTable").insertRow(-1);
-						S.forEach(M.list(S.getId("subjectTitle").value), function (category) {
+						S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category) {
 							let item = document.createElement("td");
 							let answer = M.recall(S.getId("subjectTitle").value + "/" + category)[index];
 							if (S.getType(answer) == "String" && (answer.includes("http") || answer.includes("file://"))) {
@@ -125,6 +125,121 @@
 
 
 
+			S.listen("serverStore", "click", function () {
+				/*
+				new Promise(function (resolve, reject) {
+					S.getId("list").innerHTML = "<p>Storing your data...</p>";
+						let information = S.storage[storagePlace].list();
+						let listenable = new S.Listenable();
+						listenable.value = 0;
+					listenable.addEventListener("change", function (value) {
+						if (value >= information.length) {  // when all items have been stored
+							S.getId("list").innerHTML = "<p>Deleting unwanted server information...</p>";
+							listenable.removeEventListener("change", arguments.callee);
+							listenable.value = undefined;
+							S.storage.server.list("./", function (data) {
+								listenable.value = 0;
+								listenable.addEventListener("set", function (itemsLeft) {
+									if (itemsLeft == 0) {
+										listenable.removeEventListener("set", arguments.callee);
+										resolve();
+									}
+								});
+								if (data.length > 0) {
+									// deletes account data not not present in the current data
+									let deleting = false;
+									S.forEach(data, function (key) {
+										if (!information.includes(key)) {
+											deleting = true;
+											listenable.value++;
+											recyclingBin[key] = {  // basically just retains the description as a reminder in case worst comes to worst
+												importance: 5,
+												recurrence: "indefinite",
+												time: now.getTime() + "~",
+												difficulty: 3,
+												lastFinished: now.getTime(),
+												done: false,
+												lastUpdated: now.getTime()
+											};
+											S.storage.server.forget("./" + key, function () {
+												listenable.value--;
+											}).catch(function (error) {
+												reject(error);
+											});
+										}
+									});
+									if (!deleting) {
+										listenable.value = 0;
+									}
+								} else {
+									resolve();
+								}
+							}).catch(function (error) {
+								reject(error);
+							});
+						}
+					});
+					if (information.length > 0) {
+						// stores and replaces account data with current data
+						S.forEach(information, function (key) {
+							S.storage.server.store("./" + key, S.storage[storagePlace].recall("/lists/" + key), function () {
+								listenable.value++;
+							}).catch(function (error) {
+								reject(error);
+							});
+						});
+					} else {
+						listenable.value++;
+					}
+				}).catch(function (error) {
+					console.error("There was a problem storing the information.");
+					console.error(error);
+					S.makeDialog("An error occurred while attempting to store your information.");
+				})
+				*/
+			});
+
+			S.listen("serverRecall", "click", function () {
+				/*
+				new Promise(function (resolve, reject) {S.getId("list").innerHTML = "<p>Retrieving stored information...</p>";
+					S.storage.server.list("./", function (list) {
+						S.getId("list").innerHTML = "<p>Deleting unwanted local information...</p>";
+						let listenable = new S.Listenable();
+						listenable.addEventListener("change", function (index) {
+							S.storage.server.recall("./" + list[index], function (data) {
+								S.storage[storagePlace].store("/lists/" + list[index], data);
+								if (index + 1 >= list.length) {  // once all items have been iterated through
+									S.forEach(S.storage[storagePlace].list("/lists/"), function (key) {
+										if (!list.includes(key) && key != "start-up settings") {
+											recyclingBin[key] = S.storage[storagePlace].recall("/lists/" + key);  // holds on to deleted items just in case
+											S.storage[storagePlace].forget("/lists/" + key);
+										}
+									});
+									resolve();
+								}
+							}).catch(function (error) {
+								reject(error);
+							});
+							if (index + 1 < list.length) {
+								listenable.value++;
+							} else {
+								listenable.removeEventListener("change", arguments.callee);
+							}
+						});
+						listenable.value = 0;
+					}).catch(function (error) {
+						reject(error);
+					});
+				}).catch(function (error) {
+					console.error("There was a problem retrieving the information.");
+					console.error(error);
+					S.makeDialog("An error occurred while attempting to retrieve your information.");
+				})
+				*/
+			});
+
+
+
 			S.listen("subjectTitle", "change", function () {
 				if (S.getId("subjectTitle").value.trim()) {
 					S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value.trim();
@@ -142,8 +257,8 @@
 						}]);
 						setTimeout(function () {
 							if (shouldDelete) {
-								S.forEach(M.list(S.getId("subjectTitle").value.trim()), function (key) {
-									M.forget(key, S.getId("subjectTitle").value.trim());
+								S.forEach(M.list(S.getId("subjectTitle").value.trim() + "/"), function (key) {
+									M.forget(key, S.getId("subjectTitle").value.trim() + "/");
 								});
 								goToMain();
 								S.getId("deletingMessage").textContent = "Subject deleted.";
@@ -277,7 +392,7 @@
 					let randomIndex = Math.round(Math.random() * (unusedFlashcards.length - 1));
 					let hint = unusedFlashcards[randomIndex][0];
 					let answer = unusedFlashcards[randomIndex][1];
-					if (S.getType(hint) == "String" && (hint.includes("http") || hint.includes("file://"))) {
+					if (S.getType(hint) == "String" && hint.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = hint;
 						img.style.maxWidth = "20rem";
@@ -286,7 +401,7 @@
 					} else {
 						S.getId("hint").textContent = hint;
 					}
-					if (S.getType(answer) == "String" && (answer.includes("http") || answer.includes("file://"))) {
+					if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = answer;
 						img.style.maxWidth = "20rem";
@@ -372,7 +487,7 @@
 		<h1 class="main-title">
 			Menu
 		</h1>
-		<div class="user-section">
+		<div class="user-section" style="display:none">
 			<button id="signIn">
 				Log in
 			</button>
@@ -396,6 +511,15 @@
 				<button onclick="goToSubject()">
 					Create
 				</button>
+				<!--
+				<br>
+				<button id="serverStore">
+					Save to account
+				</button>
+				<button id="serverRecall">
+					Recall from account
+				</button>
+				-->
 			</div>
 			<div id="subjectMenu">
 				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
