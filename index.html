@@ -437,6 +437,16 @@
 			}
 
 			window.addEventListener("finished", goToMain);
+
+			firebase.auth().onAuthStateChanged(function (person) {
+				if (person) {  // if the user is signed in
+					S.getId("serverStore").disabled = false;
+					S.getId("serverRecall").disabled = false;
+				} else {
+					S.getId("serverStore").disabled = true;
+					S.getId("serverRecall").disabled = true;
+				}
+			});
 		</script>
 		<link rel="stylesheet" href="https://epicenterprograms.github.io/standards/formatting/foundation.css">
 		<!--
@@ -506,10 +516,10 @@
 					Create
 				</button>
 				<br>
-				<button id="serverStore">
+				<button id="serverStore" disabled>
 					Save to account
 				</button>
-				<button id="serverRecall">
+				<button id="serverRecall" disabled>
 					Recall from account
 				</button>
 				<br>
