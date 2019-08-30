@@ -527,16 +527,7 @@
 					Fix me!
 				</button>
 				<script>
-					S.getId("fixer").addEventListener("click", function () {
-						S.forEach(M.list(), function (key) {
-							newKey = key.split("/");
-							S.forEach(newKey, function (item, index) {
-								newKey[index] = encodeURIComponent(item);
-							});
-							M.move(key, newKey.join("/"));
-						});
-						S.makeDialog("Fixed");
-					});
+					console.log(M.list());
 				</script>
 			</div>
 			<div id="subjectMenu">
