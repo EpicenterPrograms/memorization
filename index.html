@@ -126,15 +126,13 @@
 
 
 			S.listen("serverStore", "click", function () {
-				/*
+				S.makeDialog('<span id="toServerMessage">Updating your data...</span>');
 				new Promise(function (resolve, reject) {
-					S.getId("list").innerHTML = "<p>Storing your data...</p>";
-						let information = S.storage[storagePlace].list();
-						let listenable = new S.Listenable();
-						listenable.value = 0;
+					let information = M.list();
+					let listenable = new S.Listenable();
+					listenable.value = 0;
 					listenable.addEventListener("change", function (value) {
 						if (value >= information.length) {  // when all items have been stored
-							S.getId("list").innerHTML = "<p>Deleting unwanted server information...</p>";
 							listenable.removeEventListener("change", arguments.callee);
 							listenable.value = undefined;
 							S.storage.server.list("./", function (data) {
@@ -142,6 +140,7 @@
 								listenable.addEventListener("set", function (itemsLeft) {
 									if (itemsLeft == 0) {
 										listenable.removeEventListener("set", arguments.callee);
+										S.getId("toServerMessage").textContent = "Data updated.";
 										resolve();
 									}
 								});
@@ -152,15 +151,6 @@
 										if (!information.includes(key)) {
 											deleting = true;
 											listenable.value++;
-											recyclingBin[key] = {  // basically just retains the description as a reminder in case worst comes to worst
-												importance: 5,
-												recurrence: "indefinite",
-												time: now.getTime() + "~",
-												difficulty: 3,
-												lastFinished: now.getTime(),
-												done: false,
-												lastUpdated: now.getTime()
-											};
 											S.storage.server.forget("./" + key, function () {
 												listenable.value--;
 											}).catch(function (error) {
@@ -172,7 +162,7 @@
 										listenable.value = 0;
 									}
 								} else {
-									resolve();
+										listenable.value = 0;
 								}
 							}).catch(function (error) {
 								reject(error);
@@ -182,7 +172,7 @@
 					if (information.length > 0) {
 						// stores and replaces account data with current data
 						S.forEach(information, function (key) {
-							S.storage.server.store("./" + key, S.storage[storagePlace].recall("/lists/" + key), function () {
+							S.storage.server.store("./" + key, M.recall("./" + key), function () {
 								listenable.value++;
 							}).catch(function (error) {
 								reject(error);
@@ -194,27 +184,25 @@
 				}).catch(function (error) {
 					console.error("There was a problem storing the information.");
 					console.error(error);
-					S.makeDialog("An error occurred while attempting to store your information.");
+					S.getId("toServerMessage").textContent = "An error occurred.";
 				})
-				*/
 			});
 
 			S.listen("serverRecall", "click", function () {
-				/*
-				new Promise(function (resolve, reject) {S.getId("list").innerHTML = "<p>Retrieving stored information...</p>";
+				S.makeDialog('<span id="toServerMessage">Updating your data...</span>');
+				new Promise(function (resolve, reject) {
 					S.storage.server.list("./", function (list) {
-						S.getId("list").innerHTML = "<p>Deleting unwanted local information...</p>";
 						let listenable = new S.Listenable();
 						listenable.addEventListener("change", function (index) {
 							S.storage.server.recall("./" + list[index], function (data) {
-								S.storage[storagePlace].store("/lists/" + list[index], data);
+								M.store("./" + list[index], data);
 								if (index + 1 >= list.length) {  // once all items have been iterated through
-									S.forEach(S.storage[storagePlace].list("/lists/"), function (key) {
-										if (!list.includes(key) && key != "start-up settings") {
-											recyclingBin[key] = S.storage[storagePlace].recall("/lists/" + key);  // holds on to deleted items just in case
-											S.storage[storagePlace].forget("/lists/" + key);
+									S.forEach(M.list("./"), function (key) {
+										if (!list.includes(key)) {
+											M.forget("./" + key);
 										}
 									});
+									S.getId("toServerMessage").textContent = "Data updated.";
 									resolve();
 								}
 							}).catch(function (error) {
@@ -233,9 +221,8 @@
 				}).catch(function (error) {
 					console.error("There was a problem retrieving the information.");
 					console.error(error);
-					S.makeDialog("An error occurred while attempting to retrieve your information.");
+					S.getId("toServerMessage").textContent = "An error occurred.";
 				})
-				*/
 			});
 
 
@@ -487,7 +474,7 @@
 		<h1 class="main-title">
 			Menu
 		</h1>
-		<div class="user-section" style="display:none">
+		<div class="user-section">
 			<button id="signIn">
 				Log in
 			</button>
@@ -511,7 +498,6 @@
 				<button onclick="goToSubject()">
 					Create
 				</button>
-				<!--
 				<br>
 				<button id="serverStore">
 					Save to account
@@ -519,7 +505,6 @@
 				<button id="serverRecall">
 					Recall from account
 				</button>
-				-->
 			</div>
 			<div id="subjectMenu">
 				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
