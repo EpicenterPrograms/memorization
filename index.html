@@ -414,6 +414,7 @@
 
 
 			function goToMain() {
+				console.log("Got to main");
 				S.getClass("main-title")[0].textContent = "Menu";
 				S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
 				let includedSubjects = [];
