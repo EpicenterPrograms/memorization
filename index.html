@@ -32,9 +32,7 @@
 				unusedFlashcards = [];
 				usedFlashcards = [];
 				studyingPaths = [];  //// unused
-				if (S.getId("subjectSelector").value) {
-					S.getId("subjectTitle").value = decodeURIComponent(title);
-				}
+				S.getId("subjectTitle").value = decodeURIComponent(title);
 				S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value;
 				if (title == "Title") {
 					let row = S.getId("subjectTable").insertRow(-1);
@@ -218,6 +216,18 @@
 									S.forEach(M.list("./"), function (key) {
 										if (!list.includes(key)) {
 											M.forget(key);
+										}
+									});
+									S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
+									let includedSubjects = [];
+									S.forEach(M.list(), function (key) {
+										key = decodeURIComponent(key.split("/")[0]);
+										if (!includedSubjects.includes(key)) {
+											let option = document.createElement("option");
+											option.textContent = key;
+											option.value = key;
+											S.getId("subjectSelector").appendChild(option);
+											includedSubjects.push(key);
 										}
 									});
 									S.getId("toServerMessage").textContent = "Data updated.";
