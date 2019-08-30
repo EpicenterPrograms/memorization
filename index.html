@@ -279,7 +279,11 @@
 			S.listen("newRow", "click", function () {
 				let row = S.getId("subjectTable").insertRow(-1);
 				S.forEach(S.getId("subjectTable").getElementsByTagName("tr")[0].children.length, function () {
-					row.appendChild(document.createElement("td"));
+					let data = document.createElement("td");
+					let container = document.createElement("div");
+					container.contentEditable = true;
+					data.appendChild(container);
+					row.appendChild(data);
 				});
 			});
 
@@ -306,8 +310,14 @@
 						segment.appendChild(rb);
 					} else if (index == 2) {
 						segment = document.createElement("th");
+						let container = document.createElement("div");
+						container.contentEditable = true;
+						segment.appendChild(container);
 					} else {
 						segment = document.createElement("td");
+						let container = document.createElement("div");
+						container.contentEditable = true;
+						segment.appendChild(container);
 					}
 					row.appendChild(segment);
 				});
