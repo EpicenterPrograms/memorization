@@ -64,13 +64,17 @@
 					row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(2, function () {
 						let heading = document.createElement("th");
-						heading.appendChild(document.createElement("div"));
+						let container = document.createElement("div");
+						container.contentEditable = true;
+						heading.appendChild(container);
 						row.appendChild(heading);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(2, function () {
 						let data = document.createElement("td");
-						data.appendChild(document.createElement("div"));
+						let container = document.createElement("div");
+						container.contentEditable = true;
+						data.appendChild(container);
 						row.appendChild(data);
 					});
 				} else {
@@ -103,6 +107,7 @@
 						let heading = document.createElement("th");
 						let text = document.createElement("div");
 						text.textContent = decodeURIComponent(category);
+						text.contentEditable = true;
 						heading.appendChild(text);
 						row.appendChild(heading);
 					});
@@ -121,6 +126,7 @@
 							} else {
 								container.textContent = answer;
 							}
+							container.contentEditable = true;
 							item.appendChild(container);
 							row.appendChild(item);
 						});
@@ -463,10 +469,6 @@
 		<style>
 			th, td {
 				max-width: 10rem;
-			}
-			th div, td div {
-				width: 100%;
-				height: 100%;
 			}
 			#subjectMenu {
 				display: none;
