@@ -63,11 +63,15 @@
 					});
 					row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(2, function () {
-						row.appendChild(document.createElement("th"));
+						let heading = document.createElement("th");
+						heading.appendChild(document.createElement("div"));
+						row.appendChild(heading);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(2, function () {
-						row.appendChild(document.createElement("td"));
+						let data = document.createElement("td");
+						data.appendChild(document.createElement("div"));
+						row.appendChild(data);
 					});
 				} else {
 					let row = S.getId("subjectTable").insertRow(-1);
@@ -97,23 +101,27 @@
 					row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(M.list(title + "/"), function (category) {
 						let heading = document.createElement("th");
-						heading.textContent = decodeURIComponent(category);
+						let text = document.createElement("div");
+						text.textContent = decodeURIComponent(category);
+						heading.appendChild(text);
 						row.appendChild(heading);
 					});
 					S.forEach(M.recall(M.list(title)[0]).length, function (reverseIndex, index) {
 						row = S.getId("subjectTable").insertRow(-1);
 						S.forEach(M.list(title + "/"), function (category) {
 							let item = document.createElement("td");
+							let container = document.createElement("div");
 							let answer = M.recall(title + "/" + category)[index];
 							if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 								let img = document.createElement("img");
 								img.src = answer;
 								img.style.maxWidth = "9rem";
 								img.style.maxheight = "9rem";
-								item.appendChild(img);
+								container.appendChild(img);
 							} else {
-								item.textContent = answer;
+								container.textContent = answer;
 							}
+							item.appendChild(container);
 							row.appendChild(item);
 						});
 					});
@@ -529,7 +537,7 @@
 					Delete subject
 				</button>
 				<br>
-				<table id="subjectTable" contenteditable="true"></table>
+				<table id="subjectTable" contenteditable></table>
 				<br>
 				<button id="newRow">
 					New row
