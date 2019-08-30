@@ -21,7 +21,8 @@
 			//// M = S.storage.session;
 			var unusedFlashcards = [];
 			var usedFlashcards = [];
-			var studyingPaths = [];
+			var studyingPaths = [];  //// unused
+			var title;
 
 			function goToSubject() {
 				S.getId("mainMenu").style.display = "none";
@@ -30,12 +31,12 @@
 				S.getId("subjectTable").innerHTML = "";
 				unusedFlashcards = [];
 				usedFlashcards = [];
-				studyingPaths = [];
+				studyingPaths = [];  //// unused
 				if (S.getId("subjectSelector").value) {
-					S.getId("subjectTitle").value = S.getId("subjectSelector").value;
+					S.getId("subjectTitle").value = decodeURIComponent(title);
 				}
 				S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value;
-				if (S.getId("subjectTitle").value == "Title") {
+				if (title == "Title") {
 					let row = S.getId("subjectTable").insertRow(-1);
 					S.forEach(2, function (category, index) {
 						let rb = document.createElement("input");  // radio button
@@ -70,7 +71,7 @@
 					});
 				} else {
 					let row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category, index) {
+					S.forEach(M.list(title + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "hint";
@@ -82,7 +83,7 @@
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category, index) {
+					S.forEach(M.list(title + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
@@ -94,17 +95,17 @@
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
-					S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category) {
+					S.forEach(M.list(title + "/"), function (category) {
 						let heading = document.createElement("th");
-						heading.textContent = category;
+						heading.textContent = decodeURIComponent(category);
 						row.appendChild(heading);
 					});
-					S.forEach(M.recall(M.list(S.getId("subjectTitle").value)[0]).length, function (reverseIndex, index) {
+					S.forEach(M.recall(M.list(title)[0]).length, function (reverseIndex, index) {
 						row = S.getId("subjectTable").insertRow(-1);
-						S.forEach(M.list(S.getId("subjectTitle").value + "/"), function (category) {
+						S.forEach(M.list(title + "/"), function (category) {
 							let item = document.createElement("td");
-							let answer = M.recall(S.getId("subjectTitle").value + "/" + category)[index];
-							if (S.getType(answer) == "String" && (answer.includes("http") || answer.includes("file://"))) {
+							let answer = M.recall(title + "/" + category)[index];
+							if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 								let img = document.createElement("img");
 								img.src = answer;
 								img.style.maxWidth = "9rem";
@@ -121,7 +122,10 @@
 				S.getId("navigationButtons").style.display = "block";
 			}
 
-			S.listen("subjectSelector", "change", goToSubject);
+			S.listen("subjectSelector", "change", function () {
+				title = encodeURIComponent(S.getId("subjectSelector").value);
+				goToSubject();
+			});
 
 
 
@@ -151,7 +155,7 @@
 										if (!information.includes(key)) {
 											deleting = true;
 											listenable.value++;
-											S.storage.server.forget("./" + key, function () {
+											S.storage.server.forget(key, function () {
 												listenable.value--;
 											}).catch(function (error) {
 												reject(error);
@@ -172,7 +176,7 @@
 					if (information.length > 0) {
 						// stores and replaces account data with current data
 						S.forEach(information, function (key) {
-							S.storage.server.store("./" + key, M.recall("./" + key), function () {
+							S.storage.server.store(key, M.recall(key), function () {
 								listenable.value++;
 							}).catch(function (error) {
 								reject(error);
@@ -194,12 +198,12 @@
 					S.storage.server.list("./", function (list) {
 						let listenable = new S.Listenable();
 						listenable.addEventListener("change", function (index) {
-							S.storage.server.recall("./" + list[index], function (data) {
-								M.store("./" + list[index], data);
+							S.storage.server.recall(list[index], function (data) {
+								M.store(list[index], data);
 								if (index + 1 >= list.length) {  // once all items have been iterated through
 									S.forEach(M.list("./"), function (key) {
 										if (!list.includes(key)) {
-											M.forget("./" + key);
+											M.forget(key);
 										}
 									});
 									S.getId("toServerMessage").textContent = "Data updated.";
@@ -228,11 +232,15 @@
 
 
 			S.listen("subjectTitle", "change", function () {
+				let oldTitle = title;
 				if (S.getId("subjectTitle").value.trim()) {
 					S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value.trim();
+					title = encodeURIComponent(S.getId("subjectTitle").value.trim());
 				} else {
 					S.getClass("main-title")[0].textContent = "Title";
+					title = "Title";
 				}
+				M.move(oldTitle + "/", title + "/");
 			});
 
 			S.listen("deleteSubject", "click", function () {
@@ -244,9 +252,7 @@
 						}]);
 						setTimeout(function () {
 							if (shouldDelete) {
-								S.forEach(M.list(S.getId("subjectTitle").value.trim() + "/"), function (key) {
-									M.forget(key, S.getId("subjectTitle").value.trim() + "/");
-								});
+								M.forget(title + "/");
 								goToMain();
 								S.getId("deletingMessage").textContent = "Subject deleted.";
 								S.getId("deletingButton").textContent = "Okay";
@@ -316,24 +322,24 @@
 			});
 
 			S.listen("save", "click", function () {
-				if (S.getId("subjectTitle").value.trim() != "Title") {
+				if (title != "Title") {
 					let categories = [];
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
 						if (index > 1) {  // skips the radio buttons
 							if (index == 2) {  // for the headings
 								S.forEach(row.children, function (category) {
-									categories.push(category.textContent);
-									M.store(S.getId("subjectTitle").value.trim() + "/" + category.textContent, []);
+									categories.push(encodeURIComponent(category.textContent));
+									M.store(title + "/" + encodeURIComponent(category.textContent), []);
 								});
 							} else {
 								S.forEach(categories, function (category, subindex) {
-									let list = M.recall(S.getId("subjectTitle").value.trim() + "/" + category);
+									let list = M.recall(title + "/" + category);
 									if (row.children[subindex].innerHTML.includes("<img")) {  // if the item is a picture
 										list.push(row.children[subindex].getElementsByTagName("img")[0].src);
 									} else {
 										list.push(row.children[subindex].textContent);
 									}
-									M.store(S.getId("subjectTitle").value.trim() + "/" + category, list);
+									M.store(title + "/" + category, list);
 								});
 							}
 						}
@@ -342,15 +348,14 @@
 					S.getId("subjectTable").innerHTML = "";
 					goToSubject();
 				} else {
-					alert("You can't save a subject with that title.");
+					S.makeDialog("You can't save a subject with that title.");
 				}
 			});
 
 			S.listen("start", "click", function () {
 				if (S.getName("hint", true) && S.getName("answer", true) && S.getName("hint", true).value != S.getName("answer", true).value) {
-					let subject = S.getId("subjectTitle").value.trim();
-					hints = M.recall(subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent);
-					answers = M.recall(subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent);
+					hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent));
+					answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent));
 					S.forEach(hints, function (hint, index) {
 						if (hint !== "" && answers[index] !== "") {
 							unusedFlashcards.push([hint, answers[index]]);
@@ -358,9 +363,9 @@
 					});
 					if (unusedFlashcards.length > 0) {  // if there was at least one hint-answer pair
 						S.getId("subjectMenu").style.display = "none";
-						studyingPaths = [
-							subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent,  // path to hints
-							subject + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent  // path to answers
+						studyingPaths = [  //// unused
+							title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent,  // path to hints
+							title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent // path to answers
 						];
 						makeFlashcard();
 						S.getId("studySection").style.display = "block";
@@ -413,18 +418,20 @@
 				S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
 				let includedSubjects = [];
 				S.forEach(M.list(), function (key) {
-					if (!includedSubjects.includes(key.split("/")[0])) {
+					key = decodeURIComponent(key.split("/")[0]);
+					if (!includedSubjects.includes(key)) {
 						let option = document.createElement("option");
-						option.textContent = key.split("/")[0];
-						option.value = key.split("/")[0];
+						option.textContent = key;
+						option.value = key;
 						S.getId("subjectSelector").appendChild(option);
-						includedSubjects.push(key.split("/")[0]);
+						includedSubjects.push(key);
 					}
 				});
 				S.forEach(["subjectMenu", "studySection", "navigationButtons"], function (ID) {
 					S.getId(ID).style.display = "none";
 				});
 				S.getId("subjectTitle").value = "Title";
+				title = "Title";
 				S.getId("subjectTable").innerHTML = "";
 				S.getId("mainMenu").style.display = "block";
 			}
@@ -505,6 +512,22 @@
 				<button id="serverRecall">
 					Recall from account
 				</button>
+				<br>
+				<button id="fixer">
+					Fix me!
+				</button>
+				<script>
+					S.getId("fixer").addEventListener("click", function () {
+						S.forEach(M.list(), function (key) {
+							newKey = key.split("/");
+							S.forEach(newKey, function (item, index) {
+								newKey[index] = encodeURIComponent(item);
+							});
+							M.move(key, newKey.join("/"));
+						});
+						S.makeDialog("Fixed");
+					});
+				</script>
 			</div>
 			<div id="subjectMenu">
 				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
