@@ -222,7 +222,7 @@
 									let includedSubjects = [];
 									S.forEach(M.list(), function (key) {
 										key = decodeURIComponent(key.split("/")[0]);
-										if (!includedSubjects.includes(key)) {
+										if (!includedSubjects.includes(key) && key != "last synchronized") {
 											let option = document.createElement("option");
 											option.textContent = key;
 											option.value = key;
@@ -353,7 +353,7 @@
 					let includedSubjects = [];
 					S.forEach(M.list(), function (key) {
 						key = decodeURIComponent(key.split("/")[0]);
-						if (!includedSubjects.includes(key)) {
+						if (!includedSubjects.includes(key) && key != "last synchronized") {
 							let option = document.createElement("option");
 							option.textContent = key;
 							option.value = key;
@@ -565,7 +565,7 @@
 				let includedSubjects = [];
 				S.forEach(M.list(), function (key) {
 					key = decodeURIComponent(key.split("/")[0]);
-					if (!includedSubjects.includes(key)) {
+					if (!includedSubjects.includes(key) && key != "last synchronized") {
 						let option = document.createElement("option");
 						option.textContent = key;
 						option.value = key;
