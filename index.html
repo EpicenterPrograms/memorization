@@ -109,12 +109,12 @@
 						heading.appendChild(text);
 						row.appendChild(heading);
 					});
-					S.forEach(M.recall(M.list(title)[0]).length, function (reverseIndex, index) {
+					S.forEach(M.recall(M.list(title)[0]).list.length, function (reverseIndex, index) {
 						row = S.getId("subjectTable").insertRow(-1);
 						S.forEach(M.list(title + "/"), function (category) {
 							let item = document.createElement("td");
 							let container = document.createElement("div");
-							let answer = M.recall(title + "/" + category)[index];
+							let answer = M.recall(title + "/" + category).list[index];
 							if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 								let img = document.createElement("img");
 								img.src = answer;
@@ -178,7 +178,7 @@
 										listenable.value = 0;
 									}
 								} else {
-										listenable.value = 0;
+									listenable.value = 0;
 								}
 							}).catch(function (error) {
 								reject(error);
@@ -201,7 +201,7 @@
 					console.error("There was a problem storing the information.");
 					console.error(error);
 					S.getId("toServerMessage").textContent = "An error occurred.";
-				})
+				});
 			});
 
 			S.listen("serverRecall", "click", function () {
@@ -250,7 +250,118 @@
 					console.error("There was a problem retrieving the information.");
 					console.error(error);
 					S.getId("toServerMessage").textContent = "An error occurred.";
-				})
+				});
+			});
+
+			S.listen("syncData", "click", function () {
+				S.makeDialog('<span id="syncingDataMessage">Syncing your data...</span>');
+				new Promise(function (resolve, reject) {
+					if (!M.recall("last synchronized") || M.recall("last synchronized") instanceof Error) {
+						M.store("last synchronized", -Infinity);
+					}
+					S.storage.server.list("./", function (list) {
+						let remaining = new S.Listenable();
+						remaining.value = 1;
+						remaining.addEventListener("set", function (value) {
+							if (value == 0) {  // once all items have been successfully handled
+								S.storage.server.store("last synchronized", new Date().getTime(), function () {
+									S.getId("syncingDataMessage").textContent = "Data Synced.";
+									resolve();
+								}).catch(function (error) {
+									reject(error);
+								});
+								M.store("last synchronized", new Date().getTime());
+							}
+						});
+						// goes through all of the account data on the server
+						S.forEach(list, function (key) {
+							if (key != "last synchronized") {
+								remaining.value++;
+								S.storage.server.recall(key, function (info) {
+									if (M.list().includes(key)) {
+										if (M.recall(key).lastUpdated > info.lastUpdated) {
+											S.storage.server.store(key, M.recall(key), function () {
+												remaining.value--;
+											}).catch(function (error) {
+												reject(error);
+											});
+										} else if (M.recall(key).lastUpdated < info.lastUpdated) {
+											M.store(key, info);
+											remaining.value--;
+										} else {
+											remaining.value--;
+										}
+									} else if (info.lastUpdated > M.recall("last synchronized")) {
+										M.store(key, info);
+										remaining.value--;
+									} else {
+										S.storage.server.forget(key, function () {
+											remaining.value--;
+										}).catch(function (error) {
+											reject(error);
+										});
+									}
+								}).catch(function (error) {
+									reject(error);
+								});
+							}
+						});
+						// goes through remaining data stored locally
+						S.storage.server.recall("last synchronized", function (time) {
+							if (time instanceof Error) {  // if the account hasn't been synchronized before
+								S.forEach(M.list(), function (key) {
+									if (key != "last synchronized" && !list.includes(key)) {
+										remaining.value++;
+										S.storage.server.store(key, M.recall(key), function () {
+											remaining.value--;
+										}).catch(function (error) {
+											reject(error);
+										});
+									}
+								});
+							} else {
+								S.forEach(M.list(), function (key) {
+									if (key != "last synchronized" && !list.includes(key)) {
+										remaining.value++;
+										if (M.recall(key).lastUpdated < time) {
+											M.forget(key);
+											remaining.value--;
+										} else {
+											S.storage.server.store(key, M.recall(key), function () {
+												remaining.value--;
+											}).catch(function (error) {
+												reject(error);
+											});
+										}
+									}
+								});
+							}
+							remaining.value--;
+						}).catch(function (error) {
+							reject(error);
+						});
+					}).catch(function (error) {
+						reject(error);
+					});
+				}).catch(function (error) {
+					console.error("There was a problem retrieving the information.");
+					console.error(error);
+					S.getId("syncingDataMessage").textContent = "An error occurred.";
+				}).then(function () {
+					// updates the subject selector
+					S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
+					let includedSubjects = [];
+					S.forEach(M.list(), function (key) {
+						key = decodeURIComponent(key.split("/")[0]);
+						if (!includedSubjects.includes(key)) {
+							let option = document.createElement("option");
+							option.textContent = key;
+							option.value = key;
+							S.getId("subjectSelector").appendChild(option);
+							includedSubjects.push(key);
+						}
+					});
+				});
 			});
 
 
@@ -358,22 +469,23 @@
 			S.listen("save", "click", function () {
 				if (title != "Title") {
 					let categories = [];
+					let time = new Date().getTime()
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
 						if (index > 1) {  // skips the radio buttons
 							if (index == 2) {  // for the headings
 								S.forEach(row.children, function (category) {
 									categories.push(encodeURIComponent(category.textContent));
-									M.store(title + "/" + encodeURIComponent(category.textContent), []);
+									M.store(title + "/" + encodeURIComponent(category.textContent), { lastUpdated: time, list: [] });
 								});
 							} else {
 								S.forEach(categories, function (category, subindex) {
-									let list = M.recall(title + "/" + category);
+									let list = M.recall(title + "/" + category).list;
 									if (row.children[subindex].innerHTML.includes("<img")) {  // if the item is a picture
 										list.push(row.children[subindex].getElementsByTagName("img")[0].src);
 									} else {
 										list.push(row.children[subindex].textContent);
 									}
-									M.store(title + "/" + category, list);
+									M.store(title + "/" + category, { lastUpdated: time, list: list });
 								});
 							}
 						}
@@ -388,8 +500,8 @@
 
 			S.listen("start", "click", function () {
 				if (S.getName("hint", true) && S.getName("answer", true) && S.getName("hint", true).value != S.getName("answer", true).value) {
-					hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent));
-					answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent));
+					hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent)).list;
+					answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent)).list;
 					S.forEach(hints, function (hint, index) {
 						if (hint !== "" && answers[index] !== "") {
 							unusedFlashcards.push([hint, answers[index]]);
@@ -560,6 +672,41 @@
 				<button id="serverRecall" disabled>
 					Recall from account
 				</button>
+				<button id="syncData">
+					Sync with your<br>account
+				</button>
+				<br>
+				<button id="fixer">
+					Fix me!
+				</button>
+				<script>
+					S.getId("fixer").addEventListener("click", function () {
+						S.makeDialog("Fixing...");
+						S.forEach(M.list(), function (key) {
+							M.store(key, { list: M.recall(key), lastUpdated: new Date().getTime() });
+						});
+						new Promise(function (resolve, reject) {
+							S.storage.server.list("./", function (key) {
+								S.storage.server.recall(key, function (info) {
+									S.storage.server.store(key, { list: info, lastUpdated: new Date().getTime() }, function () {
+										resolve();
+									}).catch(function (error) {
+										reject(error);
+									});
+								}).catch(function (error) {
+									reject(error);
+								});
+							}).catch(function (error) {
+								reject(error);
+							});
+						}).then(function () {
+							S.makeDialog("Fixed.");
+						}).catch(function (error) {
+							console.error(error);
+							S.makeDialog("An error occurred.");
+						});
+					});
+				</script>
 			</div>
 			<div id="subjectMenu">
 				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
