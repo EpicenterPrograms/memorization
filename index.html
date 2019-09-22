@@ -681,30 +681,7 @@
 				</button>
 				<script>
 					S.getId("fixer").addEventListener("click", function () {
-						S.makeDialog("Fixing...");
-						S.forEach(M.list(), function (key) {
-							M.store(key, { list: M.recall(key), lastUpdated: new Date().getTime() });
-						});
-						new Promise(function (resolve, reject) {
-							S.storage.server.list("./", function (key) {
-								S.storage.server.recall(key, function (info) {
-									S.storage.server.store(key, { list: info, lastUpdated: new Date().getTime() }, function () {
-										resolve();
-									}).catch(function (error) {
-										reject(error);
-									});
-								}).catch(function (error) {
-									reject(error);
-								});
-							}).catch(function (error) {
-								reject(error);
-							});
-						}).then(function () {
-							S.makeDialog("Fixed.");
-						}).catch(function (error) {
-							console.error(error);
-							S.makeDialog("An error occurred.");
-						});
+						M.forget("/");
 					});
 				</script>
 			</div>
