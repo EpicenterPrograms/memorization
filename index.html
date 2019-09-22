@@ -279,6 +279,11 @@
 							if (key != "last synchronized") {
 								remaining.value++;
 								S.storage.server.recall(key, function (info) {
+									console.log(key);
+									console.log(info);
+									console.log(S.storage.session.recall("deleted subjects"));
+									console.log(Object.keys(S.storage.session.recall("deleted subjects")));
+									console.log(Object.keys(S.storage.session.recall("deleted subjects")).includes(key));
 									if (M.list().includes(key)) {
 										if (M.recall(key).lastUpdated > info.lastUpdated) {
 											S.storage.server.store(key, M.recall(key), function () {
@@ -378,9 +383,6 @@
 				}
 				M.move(oldTitle + "/", title + "/");
 				let deletedSubjects = S.storage.session.recall("deleted subjects");
-				if (S.getType(deletedSubjects) != "Object") {
-					deletedSubjects = {};
-				}
 				deletedSubjects[oldTitle] = new Date().getTime();
 				S.storage.session.store("deleted subjects", deletedSubjects);
 			});
@@ -396,9 +398,6 @@
 							if (shouldDelete) {
 								M.forget(title + "/");
 								let deletedSubjects = S.storage.session.recall("deleted subjects");
-								if (S.getType(deletedSubjects) != "Object") {
-									deletedSubjects = {};
-								}
 								deletedSubjects[title] = new Date().getTime();
 								S.storage.session.store("deleted subjects", deletedSubjects);
 								goToMain();
@@ -597,7 +596,10 @@
 				S.getId("mainMenu").style.display = "block";
 			}
 
-			window.addEventListener("finished", goToMain);
+			window.addEventListener("finished", function () {
+				S.storage.session.store("deleted subjects", {});
+				goToMain();
+			});
 
 			firebase.auth().onAuthStateChanged(function (person) {
 				if (person) {  // if the user is signed in
