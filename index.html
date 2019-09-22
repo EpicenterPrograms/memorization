@@ -260,6 +260,7 @@
 						M.store("last synchronized", -Infinity);
 					}
 					S.storage.server.list("./", function (list) {
+						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
 						remaining.value = 1;
 						remaining.addEventListener("set", function (value) {
@@ -291,7 +292,7 @@
 										} else {
 											remaining.value--;
 										}
-									} else if (info.lastUpdated > M.recall("last synchronized")) {
+									} else if (!Object.keys(S.storage.session.recall("deleted subjects")).includes(key)) {
 										M.store(key, info);
 										remaining.value--;
 									} else {
@@ -376,6 +377,12 @@
 					title = "Title";
 				}
 				M.move(oldTitle + "/", title + "/");
+				let deletedSubjects = S.storage.session.recall("deleted subjects");
+				if (S.getType(deletedSubjects) != "Object") {
+					deletedSubjects = {};
+				}
+				deletedSubjects[oldTitle] = new Date().getTime();
+				S.storage.session.store("deleted subjects", deletedSubjects);
 			});
 
 			S.listen("deleteSubject", "click", function () {
@@ -388,6 +395,12 @@
 						setTimeout(function () {
 							if (shouldDelete) {
 								M.forget(title + "/");
+								let deletedSubjects = S.storage.session.recall("deleted subjects");
+								if (S.getType(deletedSubjects) != "Object") {
+									deletedSubjects = {};
+								}
+								deletedSubjects[title] = new Date().getTime();
+								S.storage.session.store("deleted subjects", deletedSubjects);
 								goToMain();
 								S.getId("deletingMessage").textContent = "Subject deleted.";
 								S.getId("deletingButton").textContent = "Okay";
@@ -469,7 +482,7 @@
 			S.listen("save", "click", function () {
 				if (title != "Title") {
 					let categories = [];
-					let time = new Date().getTime()
+					let time = new Date().getTime();
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
 						if (index > 1) {  // skips the radio buttons
 							if (index == 2) {  // for the headings
@@ -517,6 +530,8 @@
 						S.getId("studySection").style.display = "block";
 						S.getId("toSubjectMenu").style.display = "inline-block";
 					}
+				} else {
+					S.makeDialog("Select your hints and answers.");
 				}
 			});
 
@@ -588,9 +603,11 @@
 				if (person) {  // if the user is signed in
 					S.getId("serverStore").disabled = false;
 					S.getId("serverRecall").disabled = false;
+					S.getId("syncData").disabled = false;
 				} else {
 					S.getId("serverStore").disabled = true;
 					S.getId("serverRecall").disabled = true;
+					S.getId("syncData").disabled = true;
 				}
 			});
 		</script>
@@ -672,7 +689,7 @@
 				<button id="serverRecall" disabled>
 					Recall from account
 				</button>
-				<button id="syncData">
+				<button id="syncData" disabled>
 					Sync with your<br>account
 				</button>
 				<br>
@@ -681,7 +698,7 @@
 				</button>
 				<script>
 					S.getId("fixer").addEventListener("click", function () {
-						M.forget("/");
+						M.forget("./");
 					});
 				</script>
 			</div>
