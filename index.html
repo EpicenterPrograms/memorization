@@ -141,118 +141,6 @@
 
 
 
-			S.listen("serverStore", "click", function () {
-				S.makeDialog('<span id="toServerMessage">Updating your data...</span>');
-				new Promise(function (resolve, reject) {
-					let information = M.list();
-					let listenable = new S.Listenable();
-					listenable.value = 0;
-					listenable.addEventListener("change", function (value) {
-						if (value >= information.length) {  // when all items have been stored
-							listenable.removeEventListener("change", arguments.callee);
-							listenable.value = undefined;
-							S.storage.server.list("./", function (data) {
-								listenable.value = 0;
-								listenable.addEventListener("set", function (itemsLeft) {
-									if (itemsLeft == 0) {
-										listenable.removeEventListener("set", arguments.callee);
-										S.getId("toServerMessage").textContent = "Data updated.";
-										resolve();
-									}
-								});
-								if (data.length > 0) {
-									// deletes account data not not present in the current data
-									let deleting = false;
-									S.forEach(data, function (key) {
-										if (!information.includes(key)) {
-											deleting = true;
-											listenable.value++;
-											S.storage.server.forget(key, function () {
-												listenable.value--;
-											}).catch(function (error) {
-												reject(error);
-											});
-										}
-									});
-									if (!deleting) {
-										listenable.value = 0;
-									}
-								} else {
-									listenable.value = 0;
-								}
-							}).catch(function (error) {
-								reject(error);
-							});
-						}
-					});
-					if (information.length > 0) {
-						// stores and replaces account data with current data
-						S.forEach(information, function (key) {
-							S.storage.server.store(key, M.recall(key), function () {
-								listenable.value++;
-							}).catch(function (error) {
-								reject(error);
-							});
-						});
-					} else {
-						listenable.value++;
-					}
-				}).catch(function (error) {
-					console.error("There was a problem storing the information.");
-					console.error(error);
-					S.getId("toServerMessage").textContent = "An error occurred.";
-				});
-			});
-
-			S.listen("serverRecall", "click", function () {
-				S.makeDialog('<span id="toServerMessage">Updating your data...</span>');
-				new Promise(function (resolve, reject) {
-					S.storage.server.list("./", function (list) {
-						let listenable = new S.Listenable();
-						listenable.addEventListener("change", function (index) {
-							S.storage.server.recall(list[index], function (data) {
-								M.store(list[index], data);
-								if (index + 1 >= list.length) {  // once all items have been iterated through
-									S.forEach(M.list("./"), function (key) {
-										if (!list.includes(key)) {
-											M.forget(key);
-										}
-									});
-									S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
-									let includedSubjects = [];
-									S.forEach(M.list(), function (key) {
-										key = decodeURIComponent(key.split("/")[0]);
-										if (!includedSubjects.includes(key) && key != "last synchronized") {
-											let option = document.createElement("option");
-											option.textContent = key;
-											option.value = key;
-											S.getId("subjectSelector").appendChild(option);
-											includedSubjects.push(key);
-										}
-									});
-									S.getId("toServerMessage").textContent = "Data updated.";
-									resolve();
-								}
-							}).catch(function (error) {
-								reject(error);
-							});
-							if (index + 1 < list.length) {
-								listenable.value++;
-							} else {
-								listenable.removeEventListener("change", arguments.callee);
-							}
-						});
-						listenable.value = 0;
-					}).catch(function (error) {
-						reject(error);
-					});
-				}).catch(function (error) {
-					console.error("There was a problem retrieving the information.");
-					console.error(error);
-					S.getId("toServerMessage").textContent = "An error occurred.";
-				});
-			});
-
 			S.listen("syncData", "click", function () {
 				S.makeDialog('<span id="syncingDataMessage">Syncing your data...</span>');
 				new Promise(function (resolve, reject) {
@@ -472,9 +360,11 @@
 
 			S.listen("deleteColumn", "click", function () {
 				if (S.getId("columnNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 2) {
+					let category = title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim();
 					let deletedCategories = S.storage.session.recall("deleted categories");
-					deletedCategories[title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim()] = new Date().getTime();
+					deletedCategories[category] = new Date().getTime();
 					S.storage.session.store("deleted categories", deletedCategories);
+					M.forget(category);
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
 						row.removeChild(row.children[S.getId("columnNumber").value - 1]);
 					});
@@ -696,24 +586,9 @@
 					Create
 				</button>
 				<br>
-				<button id="serverStore" disabled>
-					Save to account
-				</button>
-				<button id="serverRecall" disabled>
-					Recall from account
-				</button>
 				<button id="syncData" disabled>
 					Sync with your<br>account
 				</button>
-				<br>
-				<button id="fixer">
-					Fix me!
-				</button>
-				<script>
-					S.getId("fixer").addEventListener("click", function () {
-						M.forget("./");
-					});
-				</script>
 			</div>
 			<div id="subjectMenu">
 				<input type="text" id="subjectTitle" placeholder="Title" value="Title">
