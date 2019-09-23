@@ -274,6 +274,18 @@
 								M.store("last synchronized", new Date().getTime());
 							}
 						});
+						// gets rid of deleted subjects
+						if (Object.keys(S.storage.session.recall("deleted subjects")).length > 0) {
+							S.forEach(S.storage.session.recall("deleted subjects"), function (subject) {
+								remaining.value++;
+								list = list.filter(function (item) {  // removes categories in that subject from the server information list
+									return item.search(new RegExp("^" + subject + "/")) == -1;
+								});
+								S.storage.server.forget(subject + "/", function () {
+									remaining.value--;
+								});
+							});
+						}
 						// goes through all of the account data on the server
 						S.forEach(list, function (key) {
 							if (key != "last synchronized") {
@@ -292,7 +304,7 @@
 										} else {
 											remaining.value--;
 										}
-									} else if (!Object.keys(S.storage.session.recall("deleted subjects")).includes(key.split("/")[0])) {
+									} else if (!Object.keys(S.storage.session.recall("deleted categories")).includes(key)) {
 										M.store(key, info);
 										remaining.value--;
 									} else {
@@ -460,8 +472,11 @@
 
 			S.listen("deleteColumn", "click", function () {
 				if (S.getId("columnNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 2) {
+					let deletedCategories = S.storage.session.recall("deleted categories");
+					deletedCategories[title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim()] = new Date().getTime();
+					S.storage.session.store("deleted categories", deletedCategories);
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
-						row.removeChild(row.children[S.getId("columnNumber").value-1]);
+						row.removeChild(row.children[S.getId("columnNumber").value - 1]);
 					});
 					S.forEach(S.getName("hint"), function (radioButton, index) {
 						radioButton.value = index;
@@ -593,6 +608,7 @@
 
 			window.addEventListener("finished", function () {
 				S.storage.session.store("deleted subjects", {});
+				S.storage.session.store("deleted categories", {});
 				goToMain();
 			});
 
