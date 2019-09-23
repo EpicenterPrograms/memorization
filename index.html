@@ -504,12 +504,8 @@
 
 			firebase.auth().onAuthStateChanged(function (person) {
 				if (person) {  // if the user is signed in
-					S.getId("serverStore").disabled = false;
-					S.getId("serverRecall").disabled = false;
 					S.getId("syncData").disabled = false;
 				} else {
-					S.getId("serverStore").disabled = true;
-					S.getId("serverRecall").disabled = true;
 					S.getId("syncData").disabled = true;
 				}
 			});
