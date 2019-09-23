@@ -279,11 +279,6 @@
 							if (key != "last synchronized") {
 								remaining.value++;
 								S.storage.server.recall(key, function (info) {
-									console.log(key);
-									console.log(info);
-									console.log(S.storage.session.recall("deleted subjects"));
-									console.log(Object.keys(S.storage.session.recall("deleted subjects")));
-									console.log(Object.keys(S.storage.session.recall("deleted subjects")).includes(key));
 									if (M.list().includes(key)) {
 										if (M.recall(key).lastUpdated > info.lastUpdated) {
 											S.storage.server.store(key, M.recall(key), function () {
@@ -297,7 +292,7 @@
 										} else {
 											remaining.value--;
 										}
-									} else if (!Object.keys(S.storage.session.recall("deleted subjects")).includes(key)) {
+									} else if (!Object.keys(S.storage.session.recall("deleted subjects")).includes(key.split("/")[0])) {
 										M.store(key, info);
 										remaining.value--;
 									} else {
