@@ -9,16 +9,19 @@
 		<script src="https://www.gstatic.com/firebasejs/4.6.1/firebase-firestore.js"></script>
 		<script src="https://epicenterprograms.github.io/standards/behavior/firebaseinit.js"></script>
 		<script src="https://epicenterprograms.github.io/standards/behavior/general.js"></script>
+		<script src="https://epicenterprograms.github.io/standards/behavior/storage.js"></script>
 		<!--
-		<script src="file:///C:/Users/Robert/Documents/GitHub/standards/behavior/general.js"></script>
+		<script src="file:///C:/Users/rtben/Documents/GitHub/standards/behavior/general.js"></script>
+		<script src="file:///C:/Users/rtben/Documents/GitHub/standards/behavior/storage.js"></script>
 		-->
 		<script>
 			var S = Standards.general;
-			S.storage.local.defaultLocation = "memorization";
-			S.storage.session.defaultLocation = "memorization";
-			S.storage.server.defaultLocation = "/memorization";
-			var M = S.storage.location;
-			//// M = S.storage.session;
+			var Memory = Standards.storage;
+			Memory.local.defaultLocation = "memorization";
+			Memory.session.defaultLocation = "memorization";
+			Memory.server.defaultLocation = "/memorization";
+			var M = Memory.location;
+			//// M = Memory.session;
 			var unusedFlashcards = [];
 			var usedFlashcards = [];
 			var studyingPaths = [];  //// unused
@@ -44,6 +47,7 @@
 						let data = document.createElement("td");
 						data.style.border = "none";
 						data.style.background = "none";
+						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
@@ -56,6 +60,7 @@
 						let data = document.createElement("td");
 						data.style.border = "none";
 						data.style.background = "none";
+						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
@@ -85,6 +90,7 @@
 						let data = document.createElement("td");
 						data.style.border = "none";
 						data.style.background = "none";
+						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
@@ -97,6 +103,7 @@
 						let data = document.createElement("td");
 						data.style.border = "none";
 						data.style.background = "none";
+						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
@@ -147,13 +154,13 @@
 					if (!M.recall("last synchronized") || M.recall("last synchronized") instanceof Error) {
 						M.store("last synchronized", -Infinity);
 					}
-					S.storage.server.list("./", function (list) {
+					Memory.server.list("./", function (list) {
 						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
 						remaining.value = 1;
 						remaining.addEventListener("set", function (value) {
 							if (value == 0) {  // once all items have been successfully handled
-								S.storage.server.store("last synchronized", new Date().getTime(), function () {
+								Memory.server.store("last synchronized", new Date().getTime(), function () {
 									S.getId("syncingDataMessage").textContent = "Data Synced.";
 									resolve();
 								}).catch(function (error) {
@@ -163,13 +170,13 @@
 							}
 						});
 						// gets rid of deleted subjects
-						if (Object.keys(S.storage.session.recall("deleted subjects")).length > 0) {
-							S.forEach(S.storage.session.recall("deleted subjects"), function (subject) {
+						if (Object.keys(Memory.session.recall("deleted subjects")).length > 0) {
+							S.forEach(Memory.session.recall("deleted subjects"), function (subject) {
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
 									return item.search(new RegExp("^" + subject + "/")) == -1;
 								});
-								S.storage.server.forget(subject + "/", function () {
+								Memory.server.forget(subject + "/", function () {
 									remaining.value--;
 								});
 							});
@@ -178,10 +185,10 @@
 						S.forEach(list, function (key) {
 							if (key != "last synchronized") {
 								remaining.value++;
-								S.storage.server.recall(key, function (info) {
+								Memory.server.recall(key, function (info) {
 									if (M.list().includes(key)) {
 										if (M.recall(key).lastUpdated > info.lastUpdated) {
-											S.storage.server.store(key, M.recall(key), function () {
+											Memory.server.store(key, M.recall(key), function () {
 												remaining.value--;
 											}).catch(function (error) {
 												reject(error);
@@ -192,11 +199,11 @@
 										} else {
 											remaining.value--;
 										}
-									} else if (!Object.keys(S.storage.session.recall("deleted categories")).includes(key)) {
+									} else if (!Object.keys(Memory.session.recall("deleted categories")).includes(key)) {
 										M.store(key, info);
 										remaining.value--;
 									} else {
-										S.storage.server.forget(key, function () {
+										Memory.server.forget(key, function () {
 											remaining.value--;
 										}).catch(function (error) {
 											reject(error);
@@ -208,12 +215,12 @@
 							}
 						});
 						// goes through remaining data stored locally
-						S.storage.server.recall("last synchronized", function (time) {
+						Memory.server.recall("last synchronized", function (time) {
 							if (time instanceof Error) {  // if the account hasn't been synchronized before
 								S.forEach(M.list(), function (key) {
 									if (key != "last synchronized" && !list.includes(key)) {
 										remaining.value++;
-										S.storage.server.store(key, M.recall(key), function () {
+										Memory.server.store(key, M.recall(key), function () {
 											remaining.value--;
 										}).catch(function (error) {
 											reject(error);
@@ -228,7 +235,7 @@
 											M.forget(key);
 											remaining.value--;
 										} else {
-											S.storage.server.store(key, M.recall(key), function () {
+											Memory.server.store(key, M.recall(key), function () {
 												remaining.value--;
 											}).catch(function (error) {
 												reject(error);
@@ -277,9 +284,9 @@
 					title = "Title";
 				}
 				M.move(oldTitle + "/", title + "/");
-				let deletedSubjects = S.storage.session.recall("deleted subjects");
+				let deletedSubjects = Memory.session.recall("deleted subjects");
 				deletedSubjects[oldTitle] = new Date().getTime();
-				S.storage.session.store("deleted subjects", deletedSubjects);
+				Memory.session.store("deleted subjects", deletedSubjects);
 			});
 
 			S.listen("deleteSubject", "click", function () {
@@ -292,9 +299,9 @@
 						setTimeout(function () {
 							if (shouldDelete) {
 								M.forget(title + "/");
-								let deletedSubjects = S.storage.session.recall("deleted subjects");
+								let deletedSubjects = Memory.session.recall("deleted subjects");
 								deletedSubjects[title] = new Date().getTime();
-								S.storage.session.store("deleted subjects", deletedSubjects);
+								Memory.session.store("deleted subjects", deletedSubjects);
 								goToMain();
 								S.getId("deletingMessage").textContent = "Subject deleted.";
 								S.getId("deletingButton").textContent = "Okay";
@@ -322,6 +329,7 @@
 						segment = document.createElement("td");
 						segment.style.border = "none";
 						segment.style.background = "none";
+						segment.contentEditable = false;
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "hint";
@@ -331,6 +339,7 @@
 						segment = document.createElement("td");
 						segment.style.border = "none";
 						segment.style.background = "none";
+						segment.contentEditable = false;
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
@@ -361,9 +370,9 @@
 			S.listen("deleteColumn", "click", function () {
 				if (S.getId("columnNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 2) {
 					let category = title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim();
-					let deletedCategories = S.storage.session.recall("deleted categories");
+					let deletedCategories = Memory.session.recall("deleted categories");
 					deletedCategories[category] = new Date().getTime();
-					S.storage.session.store("deleted categories", deletedCategories);
+					Memory.session.store("deleted categories", deletedCategories);
 					M.forget(category);
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
 						row.removeChild(row.children[S.getId("columnNumber").value - 1]);
@@ -497,8 +506,8 @@
 			}
 
 			window.addEventListener("finished", function () {
-				S.storage.session.store("deleted subjects", {});
-				S.storage.session.store("deleted categories", {});
+				Memory.session.store("deleted subjects", {});
+				Memory.session.store("deleted categories", {});
 				goToMain();
 			});
 
@@ -512,7 +521,7 @@
 		</script>
 		<link rel="stylesheet" href="https://epicenterprograms.github.io/standards/formatting/foundation.css">
 		<!--
-		<link rel="stylesheet" href="file:///C:/Users/Robert/Documents/GitHub/standards/formatting/foundation.css">
+		<link rel="stylesheet" href="file:///C:/Users/rtben/Documents/GitHub/standards/formatting/foundation.css">
 		-->
 		<style>
 			th, td {
@@ -573,9 +582,9 @@
 		</div>
 		<main>
 			<div id="mainMenu">
-				<p>
+				<section>
 					Select the subject you wish to study or make a new one.
-				</p>
+				</section>
 				<select id="subjectSelector"></select>
 				<br>
 				<button onclick="goToSubject()">
@@ -592,7 +601,7 @@
 					Delete subject
 				</button>
 				<br>
-				<table id="subjectTable" contenteditable></table>
+				<table id="subjectTable" contenteditable="true"></table>
 				<br>
 				<button id="newRow">
 					New row
