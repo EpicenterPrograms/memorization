@@ -31,6 +31,22 @@
 				S.getId("mainMenu").style.display = "none";
 				S.getId("studySection").style.display = "none";
 				S.getId("toSubjectMenu").style.display = "none";
+				let lastHint = -1;  // allows remembering which hint was previously selected
+				let lastAnswer = -1;  // allows remembering which answer was previously selected
+				if (S.getId("subjectTable").innerHTML != "") {
+					lastHint = S.getName("hint", true);
+					if (lastHint != null) {
+						lastHint = Number(lastHint.value) - 1;
+					} else {
+						lastHint = -1;
+					}
+					lastAnswer = S.getName("answer", true);
+					if (lastAnswer != null) {
+						lastAnswer = Number(lastAnswer.value) - 1;
+					} else {
+						lastAnswer = -1;
+					}
+				}
 				S.getId("subjectTable").innerHTML = "";
 				unusedFlashcards = [];
 				usedFlashcards = [];
@@ -38,107 +54,164 @@
 				S.getId("subjectTitle").value = decodeURIComponent(title);
 				S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value;
 				if (title == "Title") {
+					if (!S.getId("showEditor").checked) {
+						S.getId("showEditor").click();
+					}
 					let row = S.getId("subjectTable").insertRow(-1);
+					let label = document.createElement("td");
+					label.className = "clear";
+					label.textContent = "Hint";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(2, function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "hint";
-						rb.value = index;
+						rb.value = index + 1;
 						let data = document.createElement("td");
-						data.style.border = "none";
-						data.style.background = "none";
+						data.className = "clear";
 						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
+					label = document.createElement("td");
+					label.className = "clear";
+					label.textContent = "Answer";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(2, function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
-						rb.value = index;
+						rb.value = index + 1;
 						let data = document.createElement("td");
-						data.style.border = "none";
-						data.style.background = "none";
+						data.className = "clear";
 						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
+					label = document.createElement("td");
+					label.className = "clear";
+					label.innerHTML = "&darr; Study?";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(2, function () {
 						let heading = document.createElement("th");
+						/*  //// ?
 						let container = document.createElement("div");
 						container.contentEditable = true;
 						heading.appendChild(container);
+						*/
 						row.appendChild(heading);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
+					label = document.createElement("td");
+					label.className = "clear";
+					label.innerHTML = "<input type='checkbox' class='row-selector' checked>";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(2, function () {
 						let data = document.createElement("td");
+						/*  //// ?
 						let container = document.createElement("div");
 						container.contentEditable = true;
 						data.appendChild(container);
+						*/
 						row.appendChild(data);
 					});
 				} else {
 					let row = S.getId("subjectTable").insertRow(-1);
+					let label = document.createElement("td");
+					label.className = "clear";
+					label.textContent = "Hint";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(M.list(title + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "hint";
-						rb.value = index;
+						rb.value = index + 1;
 						let data = document.createElement("td");
-						data.style.border = "none";
-						data.style.background = "none";
+						data.className = "clear";
 						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
+					label = document.createElement("td");
+					label.className = "clear";
+					label.textContent = "Answer";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(M.list(title + "/"), function (category, index) {
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
-						rb.value = index;
+						rb.value = index + 1;
 						let data = document.createElement("td");
-						data.style.border = "none";
-						data.style.background = "none";
+						data.className = "clear";
 						data.contentEditable = false;
 						data.appendChild(rb);
 						row.appendChild(data);
 					});
 					row = S.getId("subjectTable").insertRow(-1);
+					label = document.createElement("td");
+					label.className = "clear";
+					label.innerHTML = "&darr; Study?";
+					label.contentEditable = false;
+					row.appendChild(label);
 					S.forEach(M.list(title + "/"), function (category) {
 						let heading = document.createElement("th");
+						/*  //// ?
 						let text = document.createElement("div");
 						text.textContent = decodeURIComponent(category);
 						text.contentEditable = true;
 						heading.appendChild(text);
+						/*/
+						heading.textContent = decodeURIComponent(category);
+						//*/
 						row.appendChild(heading);
 					});
 					S.forEach(M.recall(M.list(title)[0]).list.length, function (reverseIndex, index) {
 						row = S.getId("subjectTable").insertRow(-1);
+						let item = document.createElement("td");
+						item.className = "clear";
+						item.contentEditable = false;
+						item.innerHTML = "<input type='checkbox' class='row-selector' checked>";
+						row.appendChild(item);
 						S.forEach(M.list(title + "/"), function (category) {
-							let item = document.createElement("td");
-							let container = document.createElement("div");
+							item = document.createElement("td");
+							//// let container = document.createElement("div");  //// ?
 							let answer = M.recall(title + "/" + category).list[index];
 							if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 								let img = document.createElement("img");
 								img.src = answer;
-								img.style.maxWidth = "9rem";
-								img.style.maxheight = "9rem";
-								container.appendChild(img);
+								img.style.maxWidth = "9em";
+								img.style.maxHeight = "9em";
+								//// container.appendChild(img);
+								item.appendChild(img);
 							} else {
-								container.textContent = answer;
+								//// container.textContent = answer;
+								item.textContent = answer;
 							}
-							container.contentEditable = true;
-							item.appendChild(container);
+							//// container.contentEditable = true;
+							//// item.appendChild(container);
+							item.contentEditable = true;
 							row.appendChild(item);
 						});
 					});
 				}
+				if (lastHint > -1) {  // if there was a previously checked hint
+					S.getName("hint")[lastHint].checked = true;
+				}
+				if (lastAnswer > -1) {  // if there was a previously checked answer
+					S.getName("answer")[lastAnswer].checked = true;
+				}
 				S.getId("subjectMenu").style.display = "block";
 				S.getId("navigationButtons").style.display = "block";
+				S.getId("rowsToStudy").dispatchEvent(new Event("change"));
 			}
 
 			S.listen("subjectSelector", "change", function () {
@@ -311,13 +384,56 @@
 				}], "No");
 			});
 
+			S.listen("rowsToStudy", ["change", "set"], function () {
+				if (this.value === "") {
+					S.forEach(S.getId("subjectTable").getElementsByClassName("row-selector"), function (checkbox) {
+						checkbox.checked = true;
+					});
+				} else {
+					let selectors = S.getId("subjectTable").getElementsByClassName("row-selector");
+					if (this.value < 0) {
+						this.value = selectors.length;
+					} else if (this.value > selectors.length) {
+						this.value = 0;
+					}
+					let number = this.value;
+					S.forEach(selectors, function (checkbox, index) {
+						if (index < number) {
+							checkbox.checked = true;
+						} else {
+							checkbox.checked = false;
+						}
+					});
+				}
+			});
+
+			S.listen("showEditor", "change", function () {
+				if (this.checked) {
+					S.getId("editingSection").style.display = "inline-block";
+				} else {
+					S.getId("editingSection").style.display = "none";
+				}
+			});
+
 			S.listen("newRow", "click", function () {
 				let row = S.getId("subjectTable").insertRow(-1);
-				S.forEach(S.getId("subjectTable").getElementsByTagName("tr")[0].children.length, function () {
+				S.forEach(S.getId("subjectTable").getElementsByTagName("tr")[0].children.length, function (_, index) {
 					let data = document.createElement("td");
-					let container = document.createElement("div");
-					container.contentEditable = true;
-					data.appendChild(container);
+					if (index == 0) {
+						data.className = "clear";
+						data.contentEditable = false;
+						let checkbox = document.createElement("input");
+						checkbox.type = "checkbox";
+						checkbox.className = "row-selector";
+						checkbox.checked = true;
+						data.appendChild(checkbox);
+					} else {
+						/*  //// ?
+						let container = document.createElement("div");
+						container.contentEditable = true;
+						data.appendChild(container);
+						*/
+					}
 					row.appendChild(data);
 				});
 			});
@@ -327,8 +443,7 @@
 					let segment;
 					if (index == 0) {
 						segment = document.createElement("td");
-						segment.style.border = "none";
-						segment.style.background = "none";
+						segment.className = "clear";
 						segment.contentEditable = false;
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
@@ -337,51 +452,54 @@
 						segment.appendChild(rb);
 					} else if (index == 1) {
 						segment = document.createElement("td");
-						segment.style.border = "none";
-						segment.style.background = "none";
+						segment.className = "clear";
 						segment.contentEditable = false;
 						let rb = document.createElement("input");  // radio button
 						rb.type = "radio";
 						rb.name = "answer";
-						rb.value = S.getId("subjectTable").getElementsByTagName("tr")[0].children.length;
+						rb.value = S.getId("subjectTable").getElementsByTagName("tr")[1].children.length;
 						segment.appendChild(rb);
 					} else if (index == 2) {
 						segment = document.createElement("th");
+						/*  //// ?
 						let container = document.createElement("div");
 						container.contentEditable = true;
 						segment.appendChild(container);
+						*/
 					} else {
 						segment = document.createElement("td");
+						/*  //// ?
 						let container = document.createElement("div");
 						container.contentEditable = true;
 						segment.appendChild(container);
+						*/
 					}
 					row.appendChild(segment);
 				});
 			});
 
 			S.listen("deleteRow", "click", function () {
-				if (S.getId("rowNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr").length > 4) {
+				if (S.getId("rowNumber").value !== "" && S.getId("subjectTable").getElementsByTagName("tr").length > 4) {
 					S.removeSelf(S.getId("subjectTable").getElementsByTagName("tr")[Number(S.getId("rowNumber").value)+2]);
 					S.getId("rowNumber").value = "";
 				}
 			});
 
 			S.listen("deleteColumn", "click", function () {
-				if (S.getId("columnNumber").value.trim() && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 2) {
-					let category = title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim();
+				if (S.getId("columnNumber").value !== "" && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 3) {
+					let category = title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim());
 					let deletedCategories = Memory.session.recall("deleted categories");
 					deletedCategories[category] = new Date().getTime();
 					Memory.session.store("deleted categories", deletedCategories);
 					M.forget(category);
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
-						row.removeChild(row.children[S.getId("columnNumber").value - 1]);
+						row.removeChild(row.children[S.getId("columnNumber").value]);
 					});
 					S.forEach(S.getName("hint"), function (radioButton, index) {
-						radioButton.value = index;
+						radioButton.value = index + 1;
 					});
 					S.forEach(S.getName("answer"), function (radioButton, index) {
-						radioButton.value = index;
+						radioButton.value = index + 1;
 					});
 					S.getId("columnNumber").value = "";
 				}
@@ -394,17 +512,19 @@
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
 						if (index > 1) {  // skips the radio buttons
 							if (index == 2) {  // for the headings
-								S.forEach(row.children, function (category) {
-									categories.push(encodeURIComponent(category.textContent));
-									M.store(title + "/" + encodeURIComponent(category.textContent), { lastUpdated: time, list: [] });
+								S.forEach(row.children, function (category, subindex) {
+									if (subindex > 0) {  // skips the checkbox heading
+										categories.push(encodeURIComponent(category.textContent.trim()));
+										M.store(title + "/" + encodeURIComponent(category.textContent.trim()), { lastUpdated: time, list: [] });
+									}
 								});
 							} else {
 								S.forEach(categories, function (category, subindex) {
 									let list = M.recall(title + "/" + category).list;
-									if (row.children[subindex].innerHTML.includes("<img")) {  // if the item is a picture
-										list.push(row.children[subindex].getElementsByTagName("img")[0].src);
+									if (row.children[subindex + 1].innerHTML.includes("<img")) {  // if the item is a picture
+										list.push(row.children[subindex + 1].getElementsByTagName("img")[0].src);
 									} else {
-										list.push(row.children[subindex].textContent);
+										list.push(row.children[subindex + 1].textContent.trim());
 									}
 									M.store(title + "/" + category, { lastUpdated: time, list: list });
 								});
@@ -420,11 +540,36 @@
 			});
 
 			S.listen("start", "click", function () {
-				if (S.getName("hint", true) && S.getName("answer", true) && S.getName("hint", true).value != S.getName("answer", true).value) {
-					hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent)).list;
-					answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent)).list;
+				let problem = "";
+				if (!S.getName("hint", true)) {
+					problem = "Select a hint category.";
+				} else if (!S.getName("answer", true)) {
+					problem = "Select an answer category.";
+				} else if (S.getName("hint", true).value == S.getName("answer", true).value) {
+					problem = "Your hints can't be the same as your answers.";
+				}
+				let checkedBoxes = 0;
+				S.forEach(S.getTag("input"), function (input) {
+					if (input.type == "checkbox" && input.checked) {
+						checkedBoxes++;
+					}
+				});
+				if (checkedBoxes < 2) {
+					problem = "You need to select at least two items to study.";
+				}
+				if (!problem) {
+					let studyIndices = [];
+					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+						if (index > 2) {  // skips radio buttons and headings
+							if (row.children[0].children[0].checked) {  // if the row's checkbox is checked
+								studyIndices.push(index - 3);
+							}
+						}
+					});
+					let hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent)).list;
+					let answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent)).list;
 					S.forEach(hints, function (hint, index) {
-						if (hint !== "" && answers[index] !== "") {
+						if (studyIndices.includes(index) && hint !== "" && answers[index] !== "") {
 							unusedFlashcards.push([hint, answers[index]]);
 						}
 					});
@@ -439,7 +584,7 @@
 						S.getId("toSubjectMenu").style.display = "inline-block";
 					}
 				} else {
-					S.makeDialog("Select your hints and answers.");
+					S.makeDialog(problem);
 				}
 			});
 
@@ -456,8 +601,6 @@
 					if (S.getType(hint) == "String" && hint.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = hint;
-						img.style.maxWidth = "20rem";
-						img.style.maxheight = "20rem";
 						S.getId("hint").appendChild(img);
 					} else {
 						S.getId("hint").textContent = hint;
@@ -465,8 +608,6 @@
 					if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = answer;
-						img.style.maxWidth = "20rem";
-						img.style.maxheight = "20rem";
 						S.getId("answer").appendChild(img);
 					} else {
 						S.getId("answer").textContent = answer;
@@ -502,6 +643,7 @@
 				S.getId("subjectTitle").value = "Title";
 				title = "Title";
 				S.getId("subjectTable").innerHTML = "";
+				S.getId("rowsToStudy").value = "";
 				S.getId("mainMenu").style.display = "block";
 			}
 
@@ -525,40 +667,71 @@
 		-->
 		<style>
 			th, td {
-				max-width: 10rem;
+				max-width: 10em;
 			}
 			th div, td div {
 				width: 100%;
 				height: 100%;
 			}
+
+			.clear {
+				border: none;
+				background: none;
+			}
+
 			#subjectMenu {
 				display: none;
 			}
+			#subjectTable {
+				display: inline-block;
+				margin-bottom: 1em;
+				padding: .1em;  /* prevents unnecessary scroll bar */
+				max-width: 100%;
+				max-height: 40em;
+				overflow: auto;
+			}
+			#rowsToStudy {
+				width: 3em;
+			}
 			#rowNumber {
-				width: 2rem;
+				width: 3em;
 			}
 			#columnNumber {
-				width: 2rem;
+				width: 3em;
+			}
+			#editingSection {
+				display: none;
 			}
 			#studySection {
 				display: none;
 			}
 			#hint {
 				display: block;
-				font-size: 2rem;
+				font-size: 2em;
 				font-weight: bold;
 			}
 			#answer {
 				visibility: hidden;
-				max-width: 20rem;
-				max-height: 20rem;
-				font-size: 2rem;
+				max-width: 10em;
+				max-height: 10em;
+				font-size: 2em;
+			}
+			#answer img {
+				max-width: 10em;
+				max-height: 10em;
 			}
 			#navigationButtons {
 				display: none;
 			}
 			#toSubjectMenu {
 				display: none;
+			}
+
+			@media (max-width: 1000px) {
+				#answer img {
+					max-width: 5em;
+					max-height: 5em;
+				}
 			}
 		</style>
 	</head>
@@ -603,25 +776,36 @@
 				<br>
 				<table id="subjectTable" contenteditable="true"></table>
 				<br>
-				<button id="newRow">
-					New row
-				</button>
-				<button id="newColumn">
-					New column
-				</button>
+				Study first
+				<input type="number" id="rowsToStudy" placeholder="#">
+				items
 				<br>
-				<button id="deleteRow">
-					Delete row...
-				</button>
-				<input type="text" id="rowNumber" placeholder="#">
-				<button id="deleteColumn">
-					Delete column...
-				</button>
-				<input type="text" id="columnNumber" placeholder="#">
 				<br>
-				<button id="save">
-					Save
-				</button>
+				<input type="checkbox" id="showEditor">
+				<label for="showEditor">Show editor</label>
+				<br>
+				<div id="editingSection">
+					<button id="newRow">
+						New row
+					</button>
+					<button id="newColumn">
+						New column
+					</button>
+					<br>
+					<button id="deleteRow">
+						Delete row...
+					</button>
+					<input type="number" id="rowNumber" placeholder="#">
+					<button id="deleteColumn">
+						Delete column...
+					</button>
+					<input type="number" id="columnNumber" placeholder="#">
+					<br>
+					<button id="save">
+						Save
+					</button>
+				</div>
+				<br>
 				<button id="start">
 					Start studying
 				</button>
