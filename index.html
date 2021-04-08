@@ -227,7 +227,7 @@
 					if (!M.recall("last synchronized") || M.recall("last synchronized") instanceof Error) {
 						M.store("last synchronized", -Infinity);
 					}
-					Memory.server.list("./", function (list) {
+					Memory.server.list("./", function (list) {  // loads all the subject titles stored on the user's account
 						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
 						remaining.value = 1;
@@ -255,27 +255,27 @@
 							});
 						}
 						// goes through all of the account data on the server
-						S.forEach(list, function (key) {
+						S.forEach(list, function (key) {  // for every subject stored on the server that hasn't been locally deleted
 							if (key != "last synchronized") {
 								remaining.value++;
 								Memory.server.recall(key, function (info) {
-									if (M.list().includes(key)) {
-										if (M.recall(key).lastUpdated > info.lastUpdated) {
+									if (M.list().includes(key)) {  // if the local storage has the same topic as the server
+										if (M.recall(key).lastUpdated > info.lastUpdated) {  // if the local information was updated more recently
 											Memory.server.store(key, M.recall(key), function () {
 												remaining.value--;
 											}).catch(function (error) {
 												reject(error);
 											});
-										} else if (M.recall(key).lastUpdated < info.lastUpdated) {
+										} else if (M.recall(key).lastUpdated < info.lastUpdated) {  // if the server information was updated more recently
 											M.store(key, info);
 											remaining.value--;
-										} else {
+										} else {  // if the server information is exactly the same as the locally stored information
 											remaining.value--;
 										}
-									} else if (!Object.keys(Memory.session.recall("deleted categories")).includes(key)) {
+									} else if (!Object.keys(Memory.session.recall("deleted subjects")).includes(key)) {  // if server has information the local doesn't
 										M.store(key, info);
 										remaining.value--;
-									} else {
+									} else {  // if the server has a deleted subject  //// duplicated above / unnecessary?
 										Memory.server.forget(key, function () {
 											remaining.value--;
 										}).catch(function (error) {
