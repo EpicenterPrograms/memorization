@@ -228,6 +228,7 @@
 						M.store("last synchronized", -Infinity);
 					}
 					Memory.server.list("./", function (list) {  // loads all the subject titles stored on the user's account
+						console.log(list);
 						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
 						remaining.value = 1;
@@ -235,6 +236,7 @@
 							if (value == 0) {  // once all items have been successfully handled
 								Memory.server.store("last synchronized", new Date().getTime(), function () {
 									S.getId("syncingDataMessage").textContent = "Data Synced.";
+									console.log(list);
 									resolve();
 								}).catch(function (error) {
 									reject(error);
@@ -254,12 +256,15 @@
 								});
 							});
 						}
+						console.log(list);
 						// goes through all of the account data on the server
 						S.forEach(list, function (key) {  // for every subject stored on the server that hasn't been locally deleted
 							if (key != "last synchronized") {
 								remaining.value++;
 								Memory.server.recall(key, function (info) {
+									console.log(key);
 									if (M.list().includes(key)) {  // if the local storage has the same topic as the server
+										console.log("Existing subject");
 										if (M.recall(key).lastUpdated > info.lastUpdated) {  // if the local information was updated more recently
 											Memory.server.store(key, M.recall(key), function () {
 												remaining.value--;
@@ -273,9 +278,11 @@
 											remaining.value--;
 										}
 									} else if (!Object.keys(Memory.session.recall("deleted subjects")).includes(key)) {  // if server has information the local doesn't
+										console.log("Server subject");
 										M.store(key, info);
 										remaining.value--;
 									} else {  // if the server has a deleted subject  //// duplicated above / unnecessary?
+										console.log("Deleted subject");
 										Memory.server.forget(key, function () {
 											remaining.value--;
 										}).catch(function (error) {
@@ -287,7 +294,7 @@
 								});
 							}
 						});
-						// goes through remaining data stored locally
+						// goes through remaining data stored locally  //// duplicated / unnecessary?
 						Memory.server.recall("last synchronized", function (time) {
 							if (time instanceof Error) {  // if the account hasn't been synchronized before
 								S.forEach(M.list(), function (key) {
