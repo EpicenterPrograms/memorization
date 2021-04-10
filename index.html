@@ -251,6 +251,7 @@
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
 									console.log(item);
+                                    console.log(new RegExp("^" + subject + "\/"));
                                     console.log(item.search(new RegExp("^" + subject + "\/")) == -1);
 									return item.search(new RegExp("^" + subject + "\/")) == -1;
 								});
