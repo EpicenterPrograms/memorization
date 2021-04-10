@@ -247,7 +247,7 @@
 						// gets rid of deleted subjects
 						if (Object.keys(Memory.session.recall("deleted subjects")).length > 0) {
                             console.log(Memory.session.recall("deleted subjects"));
-							S.forEach(Memory.session.recall("deleted subjects"), function (subject) {
+							S.forEach(Memory.session.recall("deleted subjects"), function (_, subject) {
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
 									console.log(item);
