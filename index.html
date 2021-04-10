@@ -250,8 +250,9 @@
 							S.forEach(Memory.session.recall("deleted subjects"), function (subject) {
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
-                                    console.log(item.search(new RegExp("^" + subject + "/")) == -1);
-									return item.search(new RegExp("^" + subject + "/")) == -1;
+									console.log(item);
+                                    console.log(item.search(new RegExp("^" + subject + "\/")) == -1);
+									return item.search(new RegExp("^" + subject + "\/")) == -1;
 								});
 								Memory.server.forget(subject + "/", function () {
 									remaining.value--;
