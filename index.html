@@ -227,7 +227,7 @@
 					if (!M.recall("last synchronized") || M.recall("last synchronized") instanceof Error) {
 						M.store("last synchronized", -Infinity);
 					}
-					Memory.server.list("./", function (list) {  // loads all the subject titles stored on the user's account
+					Memory.server.list("./", function (list) {  // loads all the subjects (with categories) stored on the user's account
 						console.log(list);
 						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
@@ -246,9 +246,11 @@
 						});
 						// gets rid of deleted subjects
 						if (Object.keys(Memory.session.recall("deleted subjects")).length > 0) {
+                            console.log(Memory.session.recall("deleted subjects"));
 							S.forEach(Memory.session.recall("deleted subjects"), function (subject) {
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
+                                    console.log(item.search(new RegExp("^" + subject + "/")) == -1);
 									return item.search(new RegExp("^" + subject + "/")) == -1;
 								});
 								Memory.server.forget(subject + "/", function () {
