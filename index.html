@@ -255,7 +255,7 @@
 							});
 						}
 						// goes through all of the account data on the server
-						S.forEach(list, function (key) {  // for every subject stored on the server that hasn't been locally deleted
+						S.forEach(list, function (key) {  // for every subject and category stored on the server that hasn't been locally deleted
 							if (key != "last synchronized") {
 								remaining.value++;
 								Memory.server.recall(key, function (info) {
@@ -272,10 +272,10 @@
 										} else {  // if the server information is exactly the same as the locally stored information
 											remaining.value--;
 										}
-									} else if (!Object.keys(Memory.session.recall("deleted subjects")).includes(key)) {  // if server has information the local doesn't
+									} else if (!Object.keys(Memory.session.recall("deleted categories")).includes(key)) {  // if the server has categories the local doesn't
 										M.store(key, info);
 										remaining.value--;
-									} else {  // if the server has a deleted subject  //// duplicated above / unnecessary?
+									} else {  // if the server has a deleted category
 										Memory.server.forget(key, function () {
 											remaining.value--;
 										}).catch(function (error) {
