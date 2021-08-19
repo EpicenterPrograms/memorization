@@ -24,12 +24,17 @@
 			//// M = Memory.session;
 			var unusedFlashcards = [];
 			var usedFlashcards = [];
-			var studyingPaths = [];  //// unused
+			var adaptiveFlashcards = [];
+			var lotteryWinner = {};
 			var title;
 
 			function goToSubject() {
 				S.getId("mainMenu").style.display = "none";
 				S.getId("studySection").style.display = "none";
+				S.getId("classicStudying").style.display = "none";
+				S.getId("adaptiveStudying").style.display = "none";
+				S.getId("classicMultipleChoice").style.display = "none";
+				S.getId("adaptiveMultipleChoice").style.display = "none";
 				S.getId("toSubjectMenu").style.display = "none";
 				let lastHint = -1;  // allows remembering which hint was previously selected
 				let lastAnswer = -1;  // allows remembering which answer was previously selected
@@ -48,12 +53,9 @@
 					}
 				}
 				S.getId("subjectTable").innerHTML = "";
-				unusedFlashcards = [];
-				usedFlashcards = [];
-				studyingPaths = [];  //// unused
 				S.getId("subjectTitle").value = decodeURIComponent(title);
 				S.getClass("main-title")[0].textContent = S.getId("subjectTitle").value;
-				if (title == "Title") {
+				if (title == "Title") {  // if making a new subject
 					if (!S.getId("showEditor").checked) {
 						S.getId("showEditor").click();
 					}
@@ -121,87 +123,160 @@
 						*/
 						row.appendChild(data);
 					});
-				} else {
+				} else {  // if working with an existing subject
 					let row = S.getId("subjectTable").insertRow(-1);
 					let label = document.createElement("td");
 					label.className = "clear";
 					label.textContent = "Hint";
 					label.contentEditable = false;
 					row.appendChild(label);
-					S.forEach(M.list(title + "/"), function (category, index) {
-						let rb = document.createElement("input");  // radio button
-						rb.type = "radio";
-						rb.name = "hint";
-						rb.value = index + 1;
-						let data = document.createElement("td");
-						data.className = "clear";
-						data.contentEditable = false;
-						data.appendChild(rb);
-						row.appendChild(data);
-					});
-					row = S.getId("subjectTable").insertRow(-1);
-					label = document.createElement("td");
-					label.className = "clear";
-					label.textContent = "Answer";
-					label.contentEditable = false;
-					row.appendChild(label);
-					S.forEach(M.list(title + "/"), function (category, index) {
-						let rb = document.createElement("input");  // radio button
-						rb.type = "radio";
-						rb.name = "answer";
-						rb.value = index + 1;
-						let data = document.createElement("td");
-						data.className = "clear";
-						data.contentEditable = false;
-						data.appendChild(rb);
-						row.appendChild(data);
-					});
-					row = S.getId("subjectTable").insertRow(-1);
-					label = document.createElement("td");
-					label.className = "clear";
-					label.innerHTML = "&darr; Study?";
-					label.contentEditable = false;
-					row.appendChild(label);
-					S.forEach(M.list(title + "/"), function (category) {
-						let heading = document.createElement("th");
-						/*  //// ?
-						let text = document.createElement("div");
-						text.textContent = decodeURIComponent(category);
-						text.contentEditable = true;
-						heading.appendChild(text);
-						/*/
-						heading.textContent = decodeURIComponent(category);
-						//*/
-						row.appendChild(heading);
-					});
-					S.forEach(M.recall(M.list(title)[0]).list.length, function (reverseIndex, index) {
-						row = S.getId("subjectTable").insertRow(-1);
-						let item = document.createElement("td");
-						item.className = "clear";
-						item.contentEditable = false;
-						item.innerHTML = "<input type='checkbox' class='row-selector' checked>";
-						row.appendChild(item);
-						S.forEach(M.list(title + "/"), function (category) {
-							item = document.createElement("td");
-							//// let container = document.createElement("div");  //// ?
-							let answer = M.recall(title + "/" + category).list[index];
-							if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
-								let img = document.createElement("img");
-								img.src = answer;
-								img.style.maxWidth = "9em";
-								img.style.maxHeight = "9em";
-								//// container.appendChild(img);
-								item.appendChild(img);
-							} else {
-								//// container.textContent = answer;
-								item.textContent = answer;
-							}
-							//// container.contentEditable = true;
-							//// item.appendChild(container);
-							item.contentEditable = true;
-							row.appendChild(item);
+					if (S.getType(M.recall(title)) == "Object") {
+						let categories = M.recall(title).categoryOrder;
+						// adds the hint radio buttons
+						S.forEach(categories.length, function (_, index) {
+							let rb = document.createElement("input");  // radio button
+							rb.type = "radio";
+							rb.name = "hint";
+							rb.value = index + 1;
+							let data = document.createElement("td");
+							data.className = "clear";
+							data.contentEditable = false;
+							data.appendChild(rb);
+							row.appendChild(data);
 						});
-					});
+						row = S.getId("subjectTable").insertRow(-1);
+						label = document.createElement("td");
+						label.className = "clear";
+						label.textContent = "Answer";
+						label.contentEditable = false;
+						row.appendChild(label);
+						// adds the answer radio buttons
+						S.forEach(categories.length, function (_, index) {
+							let rb = document.createElement("input");  // radio button
+							rb.type = "radio";
+							rb.name = "answer";
+							rb.value = index + 1;
+							let data = document.createElement("td");
+							data.className = "clear";
+							data.contentEditable = false;
+							data.appendChild(rb);
+							row.appendChild(data);
+						});
+						row = S.getId("subjectTable").insertRow(-1);
+						label = document.createElement("td");
+						label.className = "clear";
+						label.innerHTML = "&darr; Study?";
+						label.contentEditable = false;
+						row.appendChild(label);
+						// adds the category headings
+						S.forEach(categories, function (category) {
+							let heading = document.createElement("th");
+							heading.textContent = decodeURIComponent(category);
+							row.appendChild(heading);
+						});
+						// adds the category data
+						S.forEach(M.recall(title).list, function (info, infoIndex) {
+							row = S.getId("subjectTable").insertRow(-1);
+							// adds the row checkbox
+							let item = document.createElement("td");
+							item.className = "clear";
+							item.contentEditable = false;
+							item.innerHTML = "<input type='checkbox' class='row-selector' checked>";
+							row.appendChild(item);
+							// adds the row's data
+							S.forEach(categories, function (category) {
+								item = document.createElement("td");
+								item.dataset.familiarity = M.recall(title).list[infoIndex][category].familiarity;
+								let answer = info[category].data;
+								if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
+									let img = document.createElement("img");
+									img.src = answer;
+									img.style.maxWidth = "9em";
+									img.style.maxHeight = "9em";
+									item.appendChild(img);
+								} else {
+									item.textContent = answer;
+								}
+								item.contentEditable = true;
+								row.appendChild(item);
+							});
+						});
+					} else {  //// deprecated
+						S.forEach(M.list(title + "/"), function (category, index) {
+							let rb = document.createElement("input");  // radio button
+							rb.type = "radio";
+							rb.name = "hint";
+							rb.value = index + 1;
+							let data = document.createElement("td");
+							data.className = "clear";
+							data.contentEditable = false;
+							data.appendChild(rb);
+							row.appendChild(data);
+						});
+						row = S.getId("subjectTable").insertRow(-1);
+						label = document.createElement("td");
+						label.className = "clear";
+						label.textContent = "Answer";
+						label.contentEditable = false;
+						row.appendChild(label);
+						S.forEach(M.list(title + "/"), function (category, index) {
+							let rb = document.createElement("input");  // radio button
+							rb.type = "radio";
+							rb.name = "answer";
+							rb.value = index + 1;
+							let data = document.createElement("td");
+							data.className = "clear";
+							data.contentEditable = false;
+							data.appendChild(rb);
+							row.appendChild(data);
+						});
+						row = S.getId("subjectTable").insertRow(-1);
+						label = document.createElement("td");
+						label.className = "clear";
+						label.innerHTML = "&darr; Study?";
+						label.contentEditable = false;
+						row.appendChild(label);
+						S.forEach(M.list(title + "/"), function (category) {
+							let heading = document.createElement("th");
+							/*  //// ?
+							let text = document.createElement("div");
+							text.textContent = decodeURIComponent(category);
+							text.contentEditable = true;
+							heading.appendChild(text);
+							/*/
+							heading.textContent = decodeURIComponent(category);
+							//*/
+							row.appendChild(heading);
+						});
+						S.forEach(M.recall(M.list(title)[0]).list.length, function (reverseIndex, index) {
+							row = S.getId("subjectTable").insertRow(-1);
+							let item = document.createElement("td");
+							item.className = "clear";
+							item.contentEditable = false;
+							item.innerHTML = "<input type='checkbox' class='row-selector' checked>";
+							row.appendChild(item);
+							S.forEach(M.list(title + "/"), function (category) {
+								item = document.createElement("td");
+								//// let container = document.createElement("div");  //// ?
+								let answer = M.recall(title + "/" + category).list[index];
+								if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
+									let img = document.createElement("img");
+									img.src = answer;
+									img.style.maxWidth = "9em";
+									img.style.maxHeight = "9em";
+									//// container.appendChild(img);
+									item.appendChild(img);
+								} else {
+									//// container.textContent = answer;
+									item.textContent = answer;
+								}
+								//// container.contentEditable = true;
+								//// item.appendChild(container);
+								item.contentEditable = true;
+								row.appendChild(item);
+							});
+						});
+					}
 				}
 				if (lastHint > -1) {  // if there was a previously checked hint
 					S.getName("hint")[lastHint].checked = true;
@@ -247,7 +322,7 @@
 							S.forEach(Memory.session.recall("deleted subjects"), function (_, subject) {
 								remaining.value++;
 								list = list.filter(function (item) {  // removes categories in that subject from the server information list
-									return item.search(new RegExp("^" + subject + "\/")) == -1;
+									return item.search(new RegExp("^" + subject + "(?:\/|$)")) == -1;
 								});
 								Memory.server.forget(subject + "/", function () {
 									remaining.value--;
@@ -266,7 +341,7 @@
 											}).catch(function (error) {
 												reject(error);
 											});
-										} else if (M.recall(key).lastUpdated < info.lastUpdated) {  // if the server information was updated more recently
+										} else if (M.recall(key).lastUpdated < info.lastUpdated) {  // if server information was updated more recently
 											M.store(key, info);
 											remaining.value--;
 										} else {  // if the server information is exactly the same as the locally stored information
@@ -356,7 +431,7 @@
 					S.getClass("main-title")[0].textContent = "Title";
 					title = "Title";
 				}
-				M.move(oldTitle + "/", title + "/");
+				M.move(oldTitle, title);
 				let deletedSubjects = Memory.session.recall("deleted subjects");
 				deletedSubjects[oldTitle] = new Date().getTime();
 				Memory.session.store("deleted subjects", deletedSubjects);
@@ -371,7 +446,9 @@
 						}]);
 						setTimeout(function () {
 							if (shouldDelete) {
-								M.forget(title + "/");
+								S.forEach(M.list(title), function (key) {
+									M.forget(key);
+								});
 								let deletedSubjects = Memory.session.recall("deleted subjects");
 								deletedSubjects[title] = new Date().getTime();
 								Memory.session.store("deleted subjects", deletedSubjects);
@@ -484,14 +561,12 @@
 					S.getId("rowNumber").value = "";
 				}
 			});
-
 			S.listen("deleteColumn", "click", function () {
 				if (S.getId("columnNumber").value !== "" && S.getId("subjectTable").getElementsByTagName("tr")[0].children.length > 3) {
 					let category = title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].getElementsByTagName("th")[S.getId("columnNumber").value - 1].textContent.trim());
 					let deletedCategories = Memory.session.recall("deleted categories");
 					deletedCategories[category] = new Date().getTime();
 					Memory.session.store("deleted categories", deletedCategories);
-					M.forget(category);
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row) {
 						row.removeChild(row.children[S.getId("columnNumber").value]);
 					});
@@ -504,33 +579,141 @@
 					S.getId("columnNumber").value = "";
 				}
 			});
+			S.listen("resetFamiliarity", "click", function () {
+				if (S.getId("familiarityColumn").value !== "") {
+					let columnToReset = S.getId("familiarityColumn").value;
+					if (columnToReset > 0 && columnToReset < S.getId("subjectTable").getElementsByTagName("tr")[0].getElementsByTagName("td").length) {
+						S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+							if (index > 2) {  // skips the radio buttons and headings
+								row.getElementsByTagName("td")[columnToReset].dataset.familiarity = -1;  //// This might not be necessary.
+								let subject = M.recall(title);
+								subject.list[index - 3][subject.categoryOrder[columnToReset - 1]].familiarity = -1;
+								M.store(title, subject);
+							}
+						});
+						S.getId("familiarityColumn").value = "";
+						S.makeDialog("The familiarity of column " + columnToReset + " was reset.");
+					} else {
+						S.makeDialog("The column number to reset isn't within the range of the table.");
+					}
+				}
+			});
+
+
 
 			S.listen("save", "click", function () {
 				if (title != "Title") {
 					let categories = [];
 					let time = new Date().getTime();
+					let subject = {
+						list: [],
+						categoryOrder: [],
+						hint: "",
+						answer: "",
+						studying: [],
+						lastUpdated: time
+					};
 					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
 						if (index > 1) {  // skips the radio buttons
 							if (index == 2) {  // for the headings
 								S.forEach(row.children, function (category, subindex) {
 									if (subindex > 0) {  // skips the checkbox heading
-										categories.push(encodeURIComponent(category.textContent.trim()));
-										M.store(title + "/" + encodeURIComponent(category.textContent.trim()), { lastUpdated: time, list: [] });
+										categories.push(category.textContent.trim());
 									}
 								});
+								subject.categoryOrder = categories;
+								if (S.getName("hint", true) != null) {
+									subject.hint = categories[S.getName("hint", true) - 1];
+								}
+								if (S.getName("answer", true) != null) {
+									subject.answer = categories[S.getName("answer", true) - 1];
+								}
 							} else {
-								S.forEach(categories, function (category, subindex) {
-									let list = M.recall(title + "/" + category).list;
-									if (row.children[subindex + 1].innerHTML.includes("<img")) {  // if the item is a picture
-										list.push(row.children[subindex + 1].getElementsByTagName("img")[0].src);
+								let info = {};
+								S.forEach(row.children, function (data, subindex) {
+									if (subindex == 0) {
+										if (data.children[0].checked) {
+											subject.studying.push(index - 3);
+										}
 									} else {
-										list.push(row.children[subindex + 1].textContent.trim());
+										let item = {};
+										if (data.innerHTML.includes("<img")) {  // if the item is a picture
+											item.data = data.getElementsByTagName("img")[0].src;
+										} else {
+											item.data = data.textContent.trim();
+										}
+										item.familiarity = data.dataset && data.dataset.familiarity !== undefined ? data.dataset.familiarity : -1;
+										item.lastUpdated = time;
+										info[categories[subindex - 1]] = item;
 									}
-									M.store(title + "/" + category, { lastUpdated: time, list: list });
 								});
+								subject.list.push(info);
 							}
 						}
 					});
+					/*  sample of contents of subject:
+					subject = {
+						list: [
+							{
+								"Category 1": {
+									data: "Item 1",
+									familiarity: 3,
+									lastUpdated: 1234567890
+								},
+								"Category 2": {
+									data: "Item 2",
+									familiarity: 8,
+									lastUpdated: 1234567890
+								},
+								"Category 3": {
+									data: "Item 3",
+									familiarity: 6,
+									lastUpdated: 1234567890
+								}
+							},
+							{
+								"Category 1": {
+									data: "Item 4",
+									familiarity: 4,
+									lastUpdated: 1234567890
+								},
+								"Category 2": {
+									data: "Item 5",
+									familiarity: -1,
+									lastUpdated: 1234567890
+								},
+								"Category 3": {
+									data: "Item 6",
+									familiarity: 10,
+									lastUpdated: 1234567890
+								}
+							},
+							{
+								"Category 1": {
+									data: "Item 7",
+									familiarity: 7,
+									lastUpdated: 1234567890
+								},
+								"Category 2": {
+									data: "Item 8",
+									familiarity: 9,
+									lastUpdated: 1234567890
+								},
+								"Category 3": {
+									data: "Item 9",
+									familiarity: 1,
+									lastUpdated: 1234567890
+								}
+							}
+						],
+						categoryOrder: ["Category 3", "Category 2", "Category 1"],
+						hint: "Category 1",
+						answer: "Category 2",
+						studying: [1, 3],
+						lastUpdated: 1234567890
+					};
+					*/
+					M.store(title, subject);
 					// resets in case there were pictures added
 					S.getId("subjectTable").innerHTML = "";
 					goToSubject();
@@ -538,6 +721,8 @@
 					S.makeDialog("You can't save a subject with that title.");
 				}
 			});
+
+
 
 			S.listen("start", "click", function () {
 				let problem = "";
@@ -558,31 +743,82 @@
 					problem = "You need to select at least two items to study.";
 				}
 				if (!problem) {
-					let studyIndices = [];
-					S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
-						if (index > 2) {  // skips radio buttons and headings
-							if (row.children[0].children[0].checked) {  // if the row's checkbox is checked
-								studyIndices.push(index - 3);
+					S.makeDialog("Choose how you'd like to study.", {
+						"Classic<br>flash cards": function () {
+							unusedFlashcards = [];
+							usedFlashcards = [];
+							let subject = M.recall(title);
+							subject.hint = subject.categoryOrder[S.getName("hint", true).value - 1];
+							subject.answer = subject.categoryOrder[S.getName("answer", true).value - 1];
+							subject.studying = [];
+							S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+								if (index > 2) {  // skips radio buttons and headings
+									if (row.children[0].children[0].checked) {  // if the row's checkbox is checked
+										subject.studying.push(index - 3);
+									}
+								}
+							});
+							S.forEach(subject.studying, function (index) {
+								let item = subject.list[index];
+								if (item[subject.hint].data !== "" && item[subject.answer].data !== "") {
+									unusedFlashcards.push([item[subject.hint].data, item[subject.answer].data]);
+								}
+							});
+							if (unusedFlashcards.length > 0) {  // if there was at least one hint-answer pair
+								M.store(title, subject);
+								S.getId("subjectMenu").style.display = "none";
+								makeClassicFlashcard();
+								S.getId("studySection").style.display = "block";
+								S.getId("classicStudying").style.display = "block";
+								S.getId("toSubjectMenu").style.display = "inline-block";
 							}
-						}
+						},
+
+						"Adaptive<br>flash cards": function () {
+							adaptiveFlashcards = [];
+							let subject = M.recall(title);
+							subject.hint = subject.categoryOrder[S.getName("hint", true).value - 1];
+							subject.answer = subject.categoryOrder[S.getName("answer", true).value - 1];
+							subject.studying = [];
+							S.forEach(S.getId("subjectTable").getElementsByTagName("tr"), function (row, index) {
+								if (index > 2) {  // skips radio buttons and headings
+									if (row.children[0].children[0].checked) {  // if the row's checkbox is checked
+										subject.studying.push(index - 3);
+									}
+								}
+							});
+							S.forEach(subject.studying, function (listIndex, newIndex) {
+								let item = subject.list[listIndex];
+								if (item[subject.hint].data !== "" && item[subject.answer].data !== "") {
+									adaptiveFlashcards.push({
+										item: item,
+										hint: item[subject.hint].data,
+										answer: item[subject.answer].data,
+										familiarity: item[subject.hint].familiarity,
+										streak: 0,
+										originalIndex: listIndex,
+										currentIndex: newIndex
+									});
+								}
+							});
+							if (adaptiveFlashcards.length > 0) {  // if there was at least one hint-answer pair
+								M.store(title, subject);
+								S.getId("subjectMenu").style.display = "none";
+								makeAdaptiveFlashcard();
+								S.getId("studySection").style.display = "block";
+								S.getId("adaptiveStudying").style.display = "block";
+								S.getId("toSubjectMenu").style.display = "inline-block";
+							}
+						}/*,
+
+						"Classic<br>multiple choice": function () {
+							S.makeDialog("This functionality hasn't been implemented yet.");
+						},
+
+						"Adaptive<br>multiple choice": function () {
+							S.makeDialog("This functionality hasn't been implemented yet.");
+						}*/
 					});
-					let hints = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent)).list;
-					let answers = M.recall(title + "/" + encodeURIComponent(S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent)).list;
-					S.forEach(hints, function (hint, index) {
-						if (studyIndices.includes(index) && hint !== "" && answers[index] !== "") {
-							unusedFlashcards.push([hint, answers[index]]);
-						}
-					});
-					if (unusedFlashcards.length > 0) {  // if there was at least one hint-answer pair
-						S.getId("subjectMenu").style.display = "none";
-						studyingPaths = [  //// unused
-							title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("hint", true).value].textContent,  // path to hints
-							title + "/" + S.getId("subjectTable").getElementsByTagName("tr")[2].children[S.getName("answer", true).value].textContent // path to answers
-						];
-						makeFlashcard();
-						S.getId("studySection").style.display = "block";
-						S.getId("toSubjectMenu").style.display = "inline-block";
-					}
 				} else {
 					S.makeDialog(problem);
 				}
@@ -590,36 +826,128 @@
 
 
 
-			function makeFlashcard() {
+			function makeClassicFlashcard() {
 				if (unusedFlashcards.length > 0) {
-					S.getId("hint").innerHTML = "";
-					S.getId("answer").innerHTML = "";
-					S.getId("answer").style.visibility = "hidden";
+					S.getId("classicHint").innerHTML = "";
+					S.getId("classicAnswer").innerHTML = "";
+					S.getId("classicAnswer").style.visibility = "hidden";
 					let randomIndex = Math.round(Math.random() * (unusedFlashcards.length - 1));
 					let hint = unusedFlashcards[randomIndex][0];
 					let answer = unusedFlashcards[randomIndex][1];
 					if (S.getType(hint) == "String" && hint.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = hint;
-						S.getId("hint").appendChild(img);
+						S.getId("classicHint").appendChild(img);
 					} else {
-						S.getId("hint").textContent = hint;
+						S.getId("classicHint").textContent = hint;
 					}
 					if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
 						let img = document.createElement("img");
 						img.src = answer;
-						S.getId("answer").appendChild(img);
+						S.getId("classicAnswer").appendChild(img);
 					} else {
-						S.getId("answer").textContent = answer;
+						S.getId("classicAnswer").textContent = answer;
 					}
 					usedFlashcards.push(unusedFlashcards[randomIndex]);
 					unusedFlashcards.splice(randomIndex, 1);
 				} else {
 					unusedFlashcards = usedFlashcards;
 					usedFlashcards = [];
-					makeFlashcard();
+					makeClassicFlashcard();
 				}
 			}
+
+			function makeAdaptiveFlashcard() {
+				S.getId("adaptiveHint").innerHTML = "";
+				S.getId("adaptiveAnswer").innerHTML = "";
+				S.getId("adaptiveAnswer").style.visibility = "hidden";
+				S.getId("correctnessButtons").style.visibility = "hidden";
+				let lottery = [];
+				let newTicketsGiven = 0;
+				if (adaptiveFlashcards.every(function (item) { return item.familiarity == -1; })) {  // if none of the items have been studied before
+					adaptiveFlashcards[0].familiarity = 0;
+					adaptiveFlashcards[1].familiarity = 0;
+				}
+				S.forEach(adaptiveFlashcards, function (item) {
+					if (item.familiarity == -1) {
+						// gives unstudied items a chance of putting one "ticket" in the lottery
+						// probability of putting in a ticket starts at 66.7% and decreases each time a new item gets a ticket
+						if (Math.floor(Math.random() * (newTicketsGiven + 1.5)) == 0) {
+							lottery.push(item);
+							newTicketsGiven++;
+						}
+					} else if (item.familiarity == 10) {
+						// gives thoroughly studied items a chance of putting one "ticket" in the lottery
+						// probability of putting in a ticket decreases based on the length of the streak
+						if (Math.floor(Math.random() * item.streak) == 0) {
+							lottery.push(item);
+						}
+					} else {  // if the item has been studied before
+						S.forEach(10 - item.familiarity, function () {
+							lottery.push(item);
+						});
+					}
+				});
+				if (lottery.length == 0) {  // if the algorithm didn't randomly add any items
+					lottery = [adaptiveFlashcards[Math.floor(Math.random() * adaptiveFlashcards.length)]];
+				}
+				let preliminaryWinner = lottery[Math.floor(Math.random() * lottery.length)];
+				if (preliminaryWinner.currentIndex == lotteryWinner.currentIndex) {
+					makeAdaptiveFlashcard();
+					return;
+				} else {
+					lotteryWinner = preliminaryWinner;
+				}
+				let hint = lotteryWinner.hint;
+				let answer = lotteryWinner.answer;
+				if (S.getType(hint) == "String" && hint.search(/^https?:\/\/|^file:\/\//) > -1) {
+					let img = document.createElement("img");
+					img.src = hint;
+					S.getId("adaptiveHint").appendChild(img);
+				} else {
+					S.getId("adaptiveHint").textContent = hint;
+				}
+				if (S.getType(answer) == "String" && answer.search(/^https?:\/\/|^file:\/\//) > -1) {
+					let img = document.createElement("img");
+					img.src = answer;
+					S.getId("adaptiveAnswer").appendChild(img);
+				} else {
+					S.getId("adaptiveAnswer").textContent = answer;
+				}
+				S.getId("showAdaptiveAnswer").style.visibility = "visible";
+			}
+			S.listen("showAdaptiveAnswer", "click", function () {
+				this.style.visibility = "hidden";
+				S.getId("adaptiveAnswer").style.visibility = "visible";
+				S.getId("correctnessButtons").style.visibility = "visible";
+			});
+			S.listen("incorrectAnswer", "click", function () {
+				if (lotteryWinner.familiarity > 0) {
+					adaptiveFlashcards[lotteryWinner.currentIndex].familiarity = lotteryWinner.familiarity - 1;
+				} else if (lotteryWinner.familiarity == -1) {
+					adaptiveFlashcards[lotteryWinner.currentIndex].familiarity = 0;
+				}
+				adaptiveFlashcards[lotteryWinner.currentIndex].streak = 0;
+				let subject = M.recall(title);
+				subject.list[lotteryWinner.originalIndex][subject.hint].familiarity = adaptiveFlashcards[lotteryWinner.currentIndex].familiarity;
+				M.store(title, subject);
+				makeAdaptiveFlashcard();
+			});
+			S.listen("correctAnswer", "click", function () {
+				if (lotteryWinner.familiarity == -1) {
+					adaptiveFlashcards[lotteryWinner.currentIndex].familiarity = 1;
+				} else {
+					adaptiveFlashcards[lotteryWinner.currentIndex].familiarity = lotteryWinner.familiarity + lotteryWinner.streak + 1;
+					if (adaptiveFlashcards[lotteryWinner.currentIndex].familiarity > 10) {
+						adaptiveFlashcards[lotteryWinner.currentIndex].familiarity = 10;
+					}
+				}
+				adaptiveFlashcards[lotteryWinner.currentIndex].streak++;
+				let subject = M.recall(title);
+				subject.list[lotteryWinner.originalIndex][subject.hint].familiarity = adaptiveFlashcards[lotteryWinner.currentIndex].familiarity;
+				M.store(title, subject);
+				makeAdaptiveFlashcard();
+			});
 
 
 
@@ -699,27 +1027,38 @@
 			#columnNumber {
 				width: 3em;
 			}
+			#familiarityColumn {
+				width: 3em;
+			}
 			#editingSection {
 				display: none;
 			}
-			#studySection {
+
+			#studySection, #classicStudying, #advancedStudying, #classicMultipleChoice, #adaptiveMultipleChoice {
 				display: none;
 			}
-			#hint {
+			#classicHint, #adaptiveHint {
 				display: block;
 				font-size: 2em;
 				font-weight: bold;
 			}
-			#answer {
+			#classicAnswer, #adaptiveAnswer {
 				visibility: hidden;
 				max-width: 10em;
 				max-height: 10em;
 				font-size: 2em;
 			}
-			#answer img {
+			#classicAnswer img, #adaptiveAnswer img {
 				max-width: 10em;
 				max-height: 10em;
 			}
+			#incorrectAnswer {
+				background: #ffaaaa;
+			}
+			#correctAnswer {
+				background: #aaffaa;
+			}
+
 			#navigationButtons {
 				display: none;
 			}
@@ -728,7 +1067,7 @@
 			}
 
 			@media (max-width: 1000px) {
-				#answer img {
+				#classicAnswer img, #adaptiveAnswer img {
 					max-width: 5em;
 					max-height: 5em;
 				}
@@ -801,6 +1140,12 @@
 					</button>
 					<input type="number" id="columnNumber" placeholder="#">
 					<br>
+					<button id="resetFamiliarity">
+						Reset
+					</button>
+					familiarity of column number
+					<input type="number" id="familiarityColumn" placeholder="#">
+					<br>
 					<button id="save">
 						Save
 					</button>
@@ -811,15 +1156,48 @@
 				</button>
 			</div>
 			<div id="studySection">
-				<div id="hint"></div>
-				<div id="answer"></div>
-				<br>
-				<button onclick='S.getId("answer").style.visibility = "visible";'>
-					Show answer
-				</button>
-				<button onclick="makeFlashcard()">
-					Next
-				</button>
+				<div id="classicStudying">
+					<div id="classicHint"></div>
+					<div id="classicAnswer"></div>
+					<br>
+					<button onclick='S.getId("classicAnswer").style.visibility = "visible";'>
+						Show answer
+					</button>
+					<button onclick="makeClassicFlashcard()">
+						Next
+					</button>
+				</div>
+				<div id="adaptiveStudying">
+					<div id="adaptiveHint"></div>
+					<div id="adaptiveAnswer"></div>
+					<br>
+					<button id="showAdaptiveAnswer">
+						Show answer
+					</button>
+					<br>
+					<div id="correctnessButtons">
+						<button id="incorrectAnswer">
+							Incorrect
+						</button>
+						<button id="correctAnswer">
+							Correct
+						</button>
+					</div>
+				</div>
+				<div id="classicMultipleChoice">
+					<div id="classicMultipleHint"></div>
+					<div id="classicMultipleAnswers"></div>
+					<button id="classicProceed">
+						Proceed
+					</button>
+				</div>
+				<div id="adaptiveMultipleChoice">
+					<div id="adaptiveMultipleHint"></div>
+					<div id="adaptiveMultipleAnswers"></div>
+					<button id="adaptiveProceed">
+						Proceed
+					</button>
+				</div>
 			</div>
 			<div id="navigationButtons">
 				<button onclick="goToMain()">
