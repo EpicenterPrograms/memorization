@@ -368,7 +368,7 @@
 								S.forEach(M.list(), function (key) {
 									if (key != "last synchronized" && !list.includes(key)) {
 										remaining.value++;
-										Memory.server.store(key, M.recall(key).then(function () {
+										Memory.server.store(key, M.recall(key)).then(function () {
 											remaining.value--;
 										}).catch(function (error) {
 											reject(error);
