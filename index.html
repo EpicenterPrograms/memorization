@@ -308,7 +308,7 @@
 						remaining.value = 1;
 						remaining.addEventListener("set", function (value) {
 							if (value == 0) {  // once all items have been successfully handled
-								Memory.server.store("last synchronized", new Date().getTime(), function () {
+								Memory.server.store("last synchronized", new Date().getTime()).then(function () {
 									S.getId("syncingDataMessage").textContent = "Data Synced.";
 									resolve();
 								}).catch(function (error) {
@@ -336,7 +336,7 @@
 								Memory.server.recall(key, function (info) {
 									if (M.list().includes(key)) {  // if the local storage has the same topic as the server
 										if (M.recall(key).lastUpdated > info.lastUpdated) {  // if the local information was updated more recently
-											Memory.server.store(key, M.recall(key), function () {
+											Memory.server.store(key, M.recall(key)).then(function () {
 												remaining.value--;
 											}).catch(function (error) {
 												reject(error);
@@ -368,7 +368,7 @@
 								S.forEach(M.list(), function (key) {
 									if (key != "last synchronized" && !list.includes(key)) {
 										remaining.value++;
-										Memory.server.store(key, M.recall(key), function () {
+										Memory.server.store(key, M.recall(key).then(function () {
 											remaining.value--;
 										}).catch(function (error) {
 											reject(error);
@@ -383,7 +383,7 @@
 											M.forget(key);
 											remaining.value--;
 										} else {
-											Memory.server.store(key, M.recall(key), function () {
+											Memory.server.store(key, M.recall(key)).then(function () {
 												remaining.value--;
 											}).catch(function (error) {
 												reject(error);
