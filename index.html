@@ -302,7 +302,7 @@
 					if (!M.recall("last synchronized") || M.recall("last synchronized") instanceof Error) {
 						M.store("last synchronized", -Infinity);
 					}
-					Memory.server.list("./", function (list) {  // loads all the subjects (with categories) stored on the user's account
+					Memory.server.list("./").then(function (list) {  // loads all the subjects (with categories) stored on the user's account
 						// establishes what to do when done iterating
 						let remaining = new S.Listenable();
 						remaining.value = 1;
