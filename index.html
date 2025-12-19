@@ -331,7 +331,7 @@
 						}
 						// goes through all of the account data on the server
 						S.forEach(list, function (key) {  // for every subject and category stored on the server that hasn't been locally deleted
-							if (key != "last synchronized") {
+							if (key != "last synchronized" && !key.includes("extra data")) {
 								remaining.value++;
 								Memory.server.recall(key).then(function (info) {
 									if (M.list().includes(key)) {  // if the local storage has the same topic as the server
@@ -725,6 +725,34 @@
 
 
 
+			function getStudyDay(timestamp, cutoffHour = 4) {
+				const day = new Date(timestamp);
+				day.setHours(day.getHours() - cutoffHour);  // make 4:00am the start of a new day
+				day.setHours(0, 0, 0, 0);  // set the day to midnight of the adjusted day
+				return Math.floor(day.getTime() / 86400000);  // return days as opposed to milliseconds
+			}
+
+			function extendStreak() {
+				const streak = M.recall("extra data/streak/");
+				const then = getStudyDay(streak.currentTimestamp);
+				const nowMS = Date.now();
+				const today = getStudyDay(nowMS);
+				const studyGap = today - then;
+				streak.currentTimestamp = nowMS;
+				if (studyGap == 1) {  // if it's been a day since last practicing (the streak needs to be extended)
+					streak.currentCount++;
+				} else if (studyGap > 1) {  // if there have been multiple days since last practicing (the streak has been broken)
+					streak.currentCount = 1;
+				}
+				if (streak.currentCount > streak.bestCount) {  // update the best streak if necessary (including if streak is 1)
+					streak.bestCount = streak.currentCount;
+					streak.bestTimestamp = nowMS;
+				}
+				M.store("extra data/streak/", streak);
+			}
+
+
+
 			S.listen("start", "click", function () {
 				let problem = "";
 				if (!S.getName("hint", true)) {
@@ -772,6 +800,7 @@
 								S.getId("studySection").style.display = "block";
 								S.getId("classicStudying").style.display = "block";
 								S.getId("toSubjectMenu").style.display = "inline-block";
+								extendStreak();
 							}
 						},
 
@@ -809,6 +838,7 @@
 								S.getId("studySection").style.display = "block";
 								S.getId("adaptiveStudying").style.display = "block";
 								S.getId("toSubjectMenu").style.display = "inline-block";
+								extendStreak();
 							}
 						}/*,
 
@@ -954,11 +984,12 @@
 
 			function goToMain() {
 				S.getClass("main-title")[0].textContent = "Menu";
+				S.getId("currentStreak").textContent = M.recall("extra data/streak/currentCount");
 				S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
 				let includedSubjects = [];
 				S.forEach(M.list(), function (key) {
 					key = decodeURIComponent(key.split("/")[0]);
-					if (!includedSubjects.includes(key) && key != "last synchronized") {
+					if (!includedSubjects.includes(key) && key != "last synchronized" && key != "extra data") {
 						let option = document.createElement("option");
 						option.textContent = key;
 						option.value = key;
@@ -979,6 +1010,9 @@
 			window.addEventListener("finished", function () {
 				Memory.session.store("deleted subjects", {});
 				Memory.session.store("deleted categories", {});
+				if (M.list("extra data/").length == 0) {  // if there's no top-level folder called "extra data"
+					M.store("extra data/streak/", { bestCount:0, bestTimestamp:0, currentCount:0, currentTimestamp:0, monthPersistence:0 });
+				}
 				goToMain();
 			});
 
@@ -1095,6 +1129,12 @@
 		</div>
 		<main>
 			<div id="mainMenu">
+				<h3>
+					Current streak: <span id="currentStreak">?</span>
+				</h3>
+				<section>
+					If you've studied on a different device, sync your data before studying here.
+				</section>
 				<section>
 					Select the subject you wish to study or make a new one.
 				</section>
