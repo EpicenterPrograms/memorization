@@ -1020,7 +1020,6 @@
 				if (M.list("extra data/").length == 0) {  // if there's no top-level folder called "extra data"
 					M.store("extra data/streak/", { bestCount:0, bestTimestamp:0, currentCount:0, currentTimestamp:0, monthPersistence:0 });
 				}
-				M.store("extra data/streak/", { bestCount: 0, bestTimestamp: 0, currentCount: 2, currentTimestamp: Date.now(), monthPersistence: 0 });
 				goToMain();
 			});
 
