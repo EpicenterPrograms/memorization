@@ -732,21 +732,26 @@
 				return Math.floor(day.getTime() / 86400000);  // return days as opposed to milliseconds
 			}
 
-			function extendStreak() {
+			function getStreaks() {
 				const streak = M.recall("extra data/streak/");
 				const then = getStudyDay(streak.currentTimestamp);
 				const nowMS = Date.now();
 				const today = getStudyDay(nowMS);
 				const studyGap = today - then;
-				streak.currentTimestamp = nowMS;
-				if (studyGap == 1) {  // if it's been a day since last practicing (the streak needs to be extended)
-					streak.currentCount++;
-				} else if (studyGap > 1) {  // if there have been multiple days since last practicing (the streak has been broken)
-					streak.currentCount = 1;
+				if (studyGap > 1) {  // if there have been multiple days since last practicing (the streak has been broken)
+					streak.currentCount = 0;
+					streak.currentTimestamp = nowMS;
+					M.store("extra data/streak/", streak);
 				}
+				return streak;
+			}
+
+			function extendStreak() {
+				const streak = getStreaks();
+				streak.currentCount++;
 				if (streak.currentCount > streak.bestCount) {  // update the best streak if necessary (including if streak is 1)
 					streak.bestCount = streak.currentCount;
-					streak.bestTimestamp = nowMS;
+					streak.bestTimestamp = Date.now();
 				}
 				M.store("extra data/streak/", streak);
 			}
@@ -984,7 +989,7 @@
 
 			function goToMain() {
 				S.getClass("main-title")[0].textContent = "Menu";
-				S.getId("currentStreak").textContent = M.recall("extra data/streak/currentCount");
+				S.getId("currentStreak").textContent = getStreaks().currentCount;
 				S.getId("subjectSelector").innerHTML = "<option value=''>Select...</option>";
 				let includedSubjects = [];
 				S.forEach(M.list(), function (key) {
@@ -1083,9 +1088,9 @@
 				max-height: 10em;
 				font-size: 2em;
 			}
-			#classicAnswer img, #adaptiveAnswer img {
-				max-width: 10em;
-				max-height: 10em;
+			#classicHint img, #adaptiveHint img, #classicAnswer img, #adaptiveAnswer img {
+				max-width: 12em;
+				max-height: 12em;
 			}
 			#incorrectAnswer {
 				background: #ffaaaa;
@@ -1102,9 +1107,9 @@
 			}
 
 			@media (max-width: 1000px) {
-				#classicAnswer img, #adaptiveAnswer img {
-					max-width: 5em;
-					max-height: 5em;
+				#classicHint img, #adaptiveHint img, #classicAnswer img, #adaptiveAnswer img {
+					max-width: 6em;
+					max-height: 6em;
 				}
 			}
 		</style>
