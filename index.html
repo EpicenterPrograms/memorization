@@ -735,12 +735,10 @@
 			function getStreaks() {
 				const streak = M.recall("extra data/streak/");
 				const then = getStudyDay(streak.currentTimestamp);
-				const nowMS = Date.now();
-				const today = getStudyDay(nowMS);
+				const today = getStudyDay(Date.now());
 				const studyGap = today - then;
 				if (studyGap > 1) {  // if there have been multiple days since last practicing (the streak has been broken)
 					streak.currentCount = 0;
-					streak.currentTimestamp = nowMS;
 					M.store("extra data/streak/", streak);
 				}
 				return streak;
@@ -748,12 +746,16 @@
 
 			function extendStreak() {
 				const streak = getStreaks();
-				streak.currentCount++;
-				if (streak.currentCount > streak.bestCount) {  // update the best streak if necessary (including if streak is 1)
-					streak.bestCount = streak.currentCount;
-					streak.bestTimestamp = Date.now();
+				const now = Date.now();
+                if (getStudyDay(streak.currentTimestamp) - getStudyDay(now) >= 1) {  // if the streak hasn't been extended yet today
+                    streak.currentCount++;
+					streak.currentTimestamp = now;
+					if (streak.currentCount > streak.bestCount) {  // update the best streak if necessary (including if streak is 1)
+						streak.bestCount = streak.currentCount;
+						streak.bestTimestamp = now;
+					}
+					M.store("extra data/streak/", streak);
 				}
-				M.store("extra data/streak/", streak);
 			}
 
 
@@ -1018,6 +1020,7 @@
 				if (M.list("extra data/").length == 0) {  // if there's no top-level folder called "extra data"
 					M.store("extra data/streak/", { bestCount:0, bestTimestamp:0, currentCount:0, currentTimestamp:0, monthPersistence:0 });
 				}
+				M.store("extra data/streak/", { bestCount: 0, bestTimestamp: 0, currentCount: 2, currentTimestamp: Date.now(), monthPersistence: 0 });
 				goToMain();
 			});
 
